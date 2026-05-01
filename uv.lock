@@ -1082,6 +1082,7 @@ dependencies = [
     { name = "gymnasium", extra = ["mujoco"] },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pybullet-arm64" },
     { name = "pysindy" },
     { name = "scipy" },
 ]
@@ -1101,6 +1102,7 @@ requires-dist = [
     { name = "gymnasium", extras = ["mujoco"], specifier = ">=1.1" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "pandas", specifier = ">=2.2" },
+    { name = "pybullet-arm64", specifier = ">=3.2.8" },
     { name = "pysindy", specifier = ">=1.7" },
     { name = "scipy", specifier = ">=1.14" },
 ]
@@ -1444,6 +1446,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/cd/05/0a34433a064256a57
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl", hash = "sha256:1db8e35b67b3d218d818ae653e27f06c3aa420901fa7b081ca98cbedc874e0d0", size = 11842, upload-time = "2024-07-21T12:58:20.04Z" },
 ]
+
+[[package]]
+name = "pybullet-arm64"
+version = "3.2.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/54/489e6b053744c1793e89f8a0d92aae64937745da10ba3d9df51d2417db8b/pybullet_arm64-3.2.8.tar.gz", hash = "sha256:243027bc8805233ea2a85be507a90570183d4237aed3eb3334cb55c2174de4ca", size = 80516556, upload-time = "2026-03-13T19:32:52.308Z" }
 
 [[package]]
 name = "pycparser"

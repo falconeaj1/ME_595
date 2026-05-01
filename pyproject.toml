@@ -8,6 +8,7 @@ dependencies = [
     "gymnasium[mujoco]>=1.1",
     "numpy>=2.0",
     "pandas>=2.2",
+    "pybullet-arm64>=3.2.8",
     "pysindy>=1.7",
     "scipy>=1.14",
 ]
