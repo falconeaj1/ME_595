@@ -3,21 +3,27 @@ name = "me-595"
 version = "0.1.0"
 description = "Control RL project environment for ME 595."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "gymnasium[mujoco]>=1.1",
-    "ipykernel>=6.29",
-    "jupyterlab>=4.3",
-    "matplotlib>=3.9",
     "numpy>=2.0",
     "pandas>=2.2",
+    "pybullet-arm64>=3.2.8",
     "pysindy>=1.7",
     "scipy>=1.14",
+    "stable-baselines3>=2.0",
 ]
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29",
+    "jupyter>=1.1.1",
+    "jupyterlab>=4.3",
+    "matplotlib>=3.9",
+    "pytest>=9.0.3",
     "ruff>=0.8",
+    "torchinfo>=1.8",
+    "tqdm>=4.66",
 ]
 
 [tool.uv]
@@ -25,4 +31,4 @@ package = false
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"

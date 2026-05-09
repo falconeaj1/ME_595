@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project: trained models, checkpoints, and datasets
+*.zip
+*.pkl
+*.npz
+notebooks/checkpoints/
+sindy_rl/models/
+data/
+results/
