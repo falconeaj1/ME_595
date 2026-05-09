@@ -11,6 +11,7 @@ dependencies = [
     "pybullet-arm64>=3.2.8",
     "pysindy>=1.7",
     "scipy>=1.14",
+    "stable-baselines3>=2.0",
 ]
 
 [dependency-groups]
@@ -21,6 +22,8 @@ dev = [
     "matplotlib>=3.9",
     "pytest>=9.0.3",
     "ruff>=0.8",
+    "torchinfo>=1.8",
+    "tqdm>=4.66",
 ]
 
 [tool.uv]
