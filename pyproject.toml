@@ -13,9 +13,12 @@ dependencies = [
     "pandas>=2.2",
     "pybullet-arm64>=3.2.8",
     "pysindy>=1.7",
+    "rich>=15.0.0",
     "scipy>=1.14",
     "stable-baselines3>=2.0",
+    "tensorboard>=2.20.0",
     "torchviz>=0.0.3",
+    "tqdm>=4.67.3",
     "visualtorch>=0.2.4",
 ]
 

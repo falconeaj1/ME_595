@@ -33,7 +33,7 @@ def plot_phase_portraits(
 
     fig, axes = plt.subplots(2, 3, figsize=(14, 7))
     for ax, (i, j) in zip(axes.flat, _PORTRAIT_PAIRS):
-        ax.scatter(X[:, i], X[:, j], s=1, alpha=0.25, rasterized=True, label="data")
+        ax.scatter(X[:, i], X[:, j], s=1, alpha=0.3, rasterized=True, label="training data")
         if overlay is not None:
             ax.plot(overlay[:, i], overlay[:, j], color=overlay_color, lw=1.5,
                     label=overlay_label, zorder=5)
@@ -191,6 +191,87 @@ def plot_training_results(
 
     suptitle = title or f"PPO training — {total_steps / 1e6:.1f}M steps"
     fig.suptitle(suptitle, fontsize=10)
+    plt.tight_layout()
+    plt.show()
+
+
+# ── SINDy degree comparison ──────────────────────────────────────────────────
+
+def plot_sindy_degree_comparison(
+    fits: dict,
+    eval_results: dict,
+    max_steps: int,
+    dt: float,
+    eval_noise: float,
+    threshold: float,
+) -> None:
+    """2×2 figure comparing SINDy polynomial degrees.
+
+    fits         : {degree: dict(r2, rmse, nz, n_feats, ...)} from the sweep cell
+    eval_results : {degree: (ep_lengths, ep_rewards)} from a full N-episode eval
+    """
+    degrees = sorted(fits.keys())
+    colors  = [_PALETTE_LEN[i % len(_PALETTE_LEN)] for i in range(len(degrees))]
+
+    fig, axes = plt.subplots(2, 2, figsize=(13, 8))
+    (ax_r2, ax_nz), (ax_len, ax_rew) = axes
+
+    # ── top left: R² per degree ───────────────────────────────────────────────
+    r2s = [fits[d]["r2"] for d in degrees]
+    ax_r2.bar(degrees, r2s, color=colors, zorder=2)
+    for d, r2, col in zip(degrees, r2s, colors):
+        ax_r2.text(d, r2 + 0.005, f"{r2:.3f}", ha="center", va="bottom", fontsize=8)
+    ax_r2.set_ylim(0, 1.05)
+    ax_r2.set_xticks(degrees)
+    ax_r2.set_xlabel("Polynomial degree")
+    ax_r2.set_ylabel("R²")
+    ax_r2.set_title("Fit quality — R²")
+    ax_r2.axhline(1.0, color="green", ls="--", lw=1, alpha=0.4)
+
+    # ── top right: nonzero terms per degree ───────────────────────────────────
+    nzs = [fits[d]["nz"]     for d in degrees]
+    nfs = [fits[d]["n_feats"] for d in degrees]
+    ax_nz.bar(degrees, nfs, color="lightgray", zorder=1, label="total terms")
+    ax_nz.bar(degrees, nzs, color=colors,      zorder=2, label="nonzero")
+    for d, nz, nf, col in zip(degrees, nzs, nfs, colors):
+        ax_nz.text(d, nz + max(nfs) * 0.01, str(nz), ha="center", va="bottom", fontsize=8)
+    ax_nz.set_xticks(degrees)
+    ax_nz.set_xlabel("Polynomial degree")
+    ax_nz.set_ylabel("Library terms")
+    ax_nz.set_title("Sparsity — nonzero vs total terms")
+    ax_nz.legend(fontsize=8)
+
+    # ── bottom left: per-episode length ───────────────────────────────────────
+    n_eps = len(next(iter(eval_results.values()))[0])
+    eps   = range(1, n_eps + 1)
+    for deg, col in zip(degrees, colors):
+        lens, _ = eval_results[deg]
+        ax_len.plot(eps, lens, "o-", color=col, lw=1.5, ms=4, label=f"degree {deg}",
+                    alpha=0.85)
+    ax_len.axhline(max_steps, color="green", ls="--", lw=1.5,
+                   label=f"max ({max_steps} steps = {max_steps * dt:.0f} s)")
+    ax_len.set_ylim(0, max_steps * 1.04)
+    ax_len.set_xlabel("Episode")
+    ax_len.set_ylabel("Steps")
+    ax_len.set_title(f"Per-episode length  (noise_std={eval_noise})")
+    ax_len.legend(fontsize=8)
+
+    # ── bottom right: per-episode reward ──────────────────────────────────────
+    for deg, col in zip(degrees, colors):
+        _, rews = eval_results[deg]
+        ax_rew.plot(eps, rews, "o-", color=col, lw=1.5, ms=4, label=f"degree {deg}",
+                    alpha=0.85)
+    ax_rew.axhline(0, color="gray", ls=":", lw=1, alpha=0.7)
+    ax_rew.set_xlabel("Episode")
+    ax_rew.set_ylabel("Cumulative reward")
+    ax_rew.set_title(f"Per-episode reward  (noise_std={eval_noise})")
+    ax_rew.legend(fontsize=8)
+
+    fig.suptitle(
+        f"SINDy degree comparison — threshold={threshold}  |  "
+        f"{n_eps}-episode eval  (noise_std={eval_noise})",
+        fontsize=10,
+    )
     plt.tight_layout()
     plt.show()
 
@@ -355,5 +436,207 @@ def plot_network_diagram(
 
     if title:
         ax.set_title(title, fontsize=12, fontweight="bold", pad=14)
+    plt.tight_layout()
+    plt.show()
+
+
+# ── Episode animation ─────────────────────────────────────────────────────────
+
+def render_episode(
+    policy_fn,
+    env_id: str,
+    max_steps: int,
+    dt: float,
+    title: str = "",
+    seed: int = 0,
+    speed: int = 4,
+    reset_noise_scale: float = 0.0,
+    initial_qstate: dict | None = None,
+):
+    """Render one episode as an inline HTML animation.
+
+    policy_fn         : callable(obs) -> action array
+    speed             : frame-skip factor (4 = 4× real-time playback)
+    reset_noise_scale : initial-state perturbation std passed to gym.make
+    initial_qstate    : optional {"qpos": array[nq], "qvel": array[nv]} to pin
+                        an exact initial state (overrides reset_noise_scale effect)
+
+    Returns IPython HTML object for display in Jupyter.
+    """
+    import gymnasium as gym
+    import matplotlib.animation as animation
+    from IPython.display import HTML
+
+    env = gym.make(env_id, render_mode="rgb_array",
+                   reset_noise_scale=reset_noise_scale)
+    obs, _ = env.reset(seed=seed)
+    if initial_qstate is not None:
+        env.unwrapped.set_state(
+            np.array(initial_qstate["qpos"], dtype=np.float64),
+            np.array(initial_qstate["qvel"], dtype=np.float64),
+        )
+        obs = env.unwrapped._get_obs()
+    frames = [env.render()]
+    done = truncated = False
+    while not (done or truncated):
+        obs, _, done, truncated, _ = env.step(policy_fn(obs))
+        frames.append(env.render())
+    env.close()
+
+    n_steps = len(frames) - 1
+    status  = "TASK COMPLETE" if n_steps >= max_steps else "FAILED"
+    color   = "darkgreen" if n_steps >= max_steps else "red"
+    print(f"{n_steps} / {max_steps} steps  ({n_steps * dt:.1f} s)  ← {status}")
+
+    display_title = title or f"{n_steps} steps = {n_steps * dt:.0f} s  ({status})"
+    fig, ax = plt.subplots(figsize=(4, 6))
+    ax.axis("off")
+    ax.set_title(display_title, fontsize=9, color=color)
+    im = ax.imshow(frames[0])
+
+    def _update(i):
+        im.set_data(frames[i])
+        return [im]
+
+    ani = animation.FuncAnimation(
+        fig, _update,
+        frames=range(0, len(frames), speed),
+        interval=50, blit=True,
+    )
+    plt.close(fig)
+    return HTML(ani.to_jshtml())
+
+
+def render_comparison(
+    policy_fns: list,
+    labels: list,
+    env_id: str,
+    max_steps: int,
+    dt: float,
+    reset_noise_scale: float = 0.0,
+    seed: int = 0,
+    speed: int = 4,
+    colors: list | None = None,
+    initial_qstate: dict | None = None,
+):
+    """Side-by-side HTML animation comparing N policies from identical initial states.
+
+    policy_fns        : list of callable(obs) -> action
+    labels            : display name for each policy
+    reset_noise_scale : perturbation std applied to every environment
+    speed             : frame-skip factor
+    initial_qstate    : optional {"qpos": array[nq], "qvel": array[nv]} to pin
+                        an exact initial state for all policies
+    """
+    import gymnasium as gym
+    import matplotlib.animation as animation
+    from IPython.display import HTML
+
+    if colors is None:
+        colors = ["steelblue", "darkorange", "seagreen", "mediumpurple"]
+
+    n          = len(policy_fns)
+    all_frames = []
+    all_steps  = []
+
+    for fn in policy_fns:
+        env = gym.make(env_id, render_mode="rgb_array",
+                       reset_noise_scale=reset_noise_scale)
+        obs, _ = env.reset(seed=seed)
+        if initial_qstate is not None:
+            env.unwrapped.set_state(
+                np.array(initial_qstate["qpos"], dtype=np.float64),
+                np.array(initial_qstate["qvel"], dtype=np.float64),
+            )
+            obs = env.unwrapped._get_obs()
+        frames = [env.render()]
+        done = truncated = False
+        while not (done or truncated):
+            obs, _, done, truncated, _ = env.step(fn(obs))
+            frames.append(env.render())
+        env.close()
+        all_frames.append(frames)
+        all_steps.append(len(frames) - 1)
+
+    # Pad shorter sequences with their last frame so animation lengths match
+    max_len = max(len(f) for f in all_frames)
+    for i in range(n):
+        while len(all_frames[i]) < max_len:
+            all_frames[i].append(all_frames[i][-1])
+
+    fig, axes = plt.subplots(1, n, figsize=(4 * n, 6))
+    axes = list(np.atleast_1d(axes))
+
+    ims = []
+    for i, (ax, label, steps) in enumerate(zip(axes, labels, all_steps)):
+        status      = "TASK COMPLETE" if steps >= max_steps else f"FAILED ({steps} steps)"
+        title_color = "darkgreen"     if steps >= max_steps else "crimson"
+        ax.axis("off")
+        ax.set_title(f"{label}\n{status}", fontsize=9, color=title_color, fontweight="bold")
+        ims.append(ax.imshow(all_frames[i][0]))
+
+    for steps, label in zip(all_steps, labels):
+        status = "TASK COMPLETE" if steps >= max_steps else "FAILED"
+        print(f"  {label}: {steps}/{max_steps} steps  ({steps*dt:.1f}s)  ← {status}")
+
+    def _update(frame_idx):
+        for i, im in enumerate(ims):
+            im.set_data(all_frames[i][frame_idx])
+        return ims
+
+    ani = animation.FuncAnimation(
+        fig, _update,
+        frames=range(0, max_len, speed),
+        interval=50, blit=True,
+    )
+    plt.close(fig)
+    return HTML(ani.to_jshtml())
+
+
+# ── PCA coverage ──────────────────────────────────────────────────────────────
+
+def plot_pca_coverage(
+    X: np.ndarray,
+    overlay: np.ndarray | None = None,
+    overlay_label: str = "trajectory",
+    overlay_color: str = "crimson",
+    title: str = "PCA coverage",
+) -> None:
+    """Project training data and an optional trajectory into PCA space.
+
+    Fits PCA on X, then shows PC1 vs PC2 and PC1 vs PC3 side-by-side.
+    The overlay trajectory is projected into the *same* PCA space so its
+    position relative to the training cloud is geometrically meaningful.
+    """
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.decomposition import PCA
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    pca = PCA(n_components=3)
+    X_pca = pca.fit_transform(X_scaled)
+    ev = pca.explained_variance_ratio_
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    pairs = [(0, 1), (0, 2)]
+    for ax, (a, b) in zip(axes, pairs):
+        ax.scatter(X_pca[:, a], X_pca[:, b],
+                   s=1, alpha=0.3, rasterized=True,
+                   label="training data")
+        if overlay is not None:
+            ov_pca = pca.transform(scaler.transform(overlay))
+            ax.plot(ov_pca[:, a], ov_pca[:, b],
+                    color=overlay_color, lw=1.5, label=overlay_label, zorder=5)
+            ax.scatter(ov_pca[0, a], ov_pca[0, b],
+                       color=overlay_color, s=80, marker="o", zorder=6)
+            ax.scatter(ov_pca[-1, a], ov_pca[-1, b],
+                       color=overlay_color, s=100, marker="X", zorder=6)
+        ax.set_xlabel(f"PC{a+1} ({ev[a]*100:.1f}% var)")
+        ax.set_ylabel(f"PC{b+1} ({ev[b]*100:.1f}% var)")
+        ax.legend(fontsize=8)
+
+    total_var = ev[:3].sum() * 100
+    fig.suptitle(f"{title}  —  PCs 1–3 capture {total_var:.1f}% of variance", fontsize=11)
     plt.tight_layout()
     plt.show()
