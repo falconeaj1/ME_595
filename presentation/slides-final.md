@@ -458,10 +458,7 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
 
 # Two objectives — one interpretable controller
 
-<br>
-<br>
-
-<img src="objectives_diagram.png" style="display:block; margin:0.3em auto; width:800px;" alt="chicken-egg diagram">
+<img src="objectives_diagram.png" style="display:block; margin:1.2em auto 0; width:1060px;" alt="chicken-egg diagram">
 
 ---
 
