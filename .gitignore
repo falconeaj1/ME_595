@@ -221,7 +221,9 @@ __marimo__/
 *.zip
 *.pkl
 *.npz
-notebooks/checkpoints/
 sindy_rl/models/
 data/
 results/
+
+# macos
+.DS_Store

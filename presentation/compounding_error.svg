@@ -1,0 +1,26 @@
+<svg width="360" height="185" viewBox="0 0 360 185" xmlns="http://www.w3.org/2000/svg">
+  <!-- axes -->
+  <line x1="45" y1="155" x2="315" y2="155" stroke="#ccc" stroke-width="1.5"/>
+  <line x1="45" y1="18"  x2="45"  y2="155" stroke="#ccc" stroke-width="1.5"/>
+  <!-- axis labels -->
+  <text x="180" y="172" font-size="11" fill="#888" text-anchor="middle" font-family="sans-serif">time step</text>
+  <text x="14" y="88" font-size="11" fill="#888" text-anchor="middle" font-family="sans-serif" transform="rotate(-90,14,88)">&#x3B8;&#x2081; error</text>
+  <!-- terminate threshold -->
+  <line x1="45" y1="143" x2="315" y2="143" stroke="#ddd" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="317" y="147" font-size="9" fill="#bbb" font-family="sans-serif">fail</text>
+  <!-- oracle: dashed purple flat line -->
+  <line x1="45" y1="32" x2="308" y2="32" stroke="#4B2E83" stroke-width="2" stroke-dasharray="5,4"/>
+  <text x="311" y="28" font-size="10" fill="#4B2E83" font-family="sans-serif">oracle</text>
+  <!-- sigma=0: nearly flat solid green -->
+  <path d="M45,32 C130,33 220,34 308,36"
+        fill="none" stroke="#2e7d32" stroke-width="2"/>
+  <text x="311" y="44" font-size="10" fill="#2e7d32" font-family="sans-serif">&#x3C3;=0</text>
+  <!-- sigma=0.1: moderate degradation, terminates ~x=232 -->
+  <path d="M45,32 C90,35 140,65 185,105 C212,128 226,140 232,143"
+        fill="none" stroke="#e65100" stroke-width="2"/>
+  <text x="234" y="136" font-size="10" fill="#e65100" font-family="sans-serif">&#x3C3;=0.1</text>
+  <!-- sigma=0.3: rapid degradation, terminates ~x=84 -->
+  <path d="M45,32 C52,48 62,98 76,135 C79,141 81,143 84,143"
+        fill="none" stroke="#c62828" stroke-width="2.5"/>
+  <text x="87" y="131" font-size="10" fill="#c62828" font-family="sans-serif">&#x3C3;=0.3</text>
+</svg>
