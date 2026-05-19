@@ -91,7 +91,7 @@ section.title h1 {
   border-bottom: 3px solid var(--uw-gold);
   padding-bottom: 0.25em;
   margin-bottom: 0.6em;
-  max-width: 820px;
+  max-width: 1020px;
   line-height: 1.25;
 }
 
@@ -212,8 +212,8 @@ section.statement p {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4em;
+  flex-wrap: nowrap;
+  gap: 0.3em;
   margin: 0.6em 0;
   font-size: 0.82em;
 }
@@ -221,10 +221,10 @@ section.statement p {
 .fn {
   background: var(--uw-purple);
   color: #fff;
-  padding: 0.38em 0.75em;
+  padding: 0.38em 0.6em;
   border-radius: 6px;
   text-align: center;
-  min-width: 70px;
+  min-width: 60px;
   line-height: 1.3;
 }
 
@@ -244,20 +244,20 @@ section.statement p {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8em;
-  margin-top: 0.4em;
+  font-size: 0.73em;
+  margin-top: 0.3em;
 }
 
 th {
   background: var(--uw-purple);
   color: #fff;
-  padding: 8px 14px;
+  padding: 5px 10px;
   text-align: left;
   font-weight: 600;
 }
 
 td {
-  padding: 6px 14px;
+  padding: 4px 10px;
   border-bottom: 1px solid #e8e0f0;
 }
 
@@ -340,6 +340,7 @@ tr:nth-child(even) td { background: var(--uw-light); }
 /* Center standalone block images */
 img[alt~="chicken-egg"] { display: block; margin: 0.3em auto; }
 img[alt~="swing-up"]    { display: block; margin: 0.4em auto; }
+img[alt~="sindy-loop"]  { display: block; margin: 0.3em auto; }
 </style>
 
 <!-- ─────────────────────────────────────────────────
@@ -351,7 +352,7 @@ img[alt~="swing-up"]    { display: block; margin: 0.4em auto; }
 
 <div class="uw-w">W</div>
 
-# Interpretable Control for<br>Unstable Systems via SINDy-RL
+# Interpretable Control for<br>Unstable Systems via SINDy&#8209;RL
 
 **Patrick Smith &nbsp;·&nbsp; Andrew Falcone**
 
@@ -617,34 +618,23 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
   Andrew — 0:50
 ───────────────────────────────────────────────── -->
 
-# ROM surrogate — train RL inside an interpretable model
+# ROM surrogate — SINDy dynamics + LQR control
 
-**Core idea:** use a SINDy surrogate as the "dream environment" (cf. DreamerV3).
+![sindy-loop w:620](sindy_loop_diagram.png)
 
-<br>
+<div class="cols" style="align-items:start; margin-top:0.7em; gap:1em;">
 
-<div class="flow" style="font-size:0.85em; gap:0.5em;">
-  <div class="fn">Bootstrap<br><small>PD + random</small></div>
-  <div class="fa">→</div>
-  <div class="fn">Fit SINDy<br><small>polynomial dynamics</small></div>
-  <div class="fa">→</div>
-  <div class="fn gold">Train PPO<br><small>in surrogate</small></div>
-  <div class="fa">→</div>
-  <div class="fn">Deploy<br><small>in real sim</small></div>
-  <div class="fa">→</div>
-  <div class="fn gold">Collect data<br><small>near equilibrium</small></div>
-  <div class="fa">→</div>
-  <div class="fn" style="font-size:1.4em; min-width:30px;">⟳</div>
+<div class="box" style="font-size:0.83em;">
+  <strong>PPO Policy learned on SINDy fails in deployment</strong><br><br>
+  PPO found a policy that scored well <em>inside the polynomial</em> — by exploiting its approximation errors. Those actions don't generalize to the real system: <strong>24</strong> steps average in MuJoCo.
 </div>
 
-<br>
+<div class="gold-box" style="font-size:0.83em;">
+  <strong>Why LQR transfers</strong><br><br>
+  LQR only uses the <em>Jacobian at the upright fixed point</em>. Near equilibrium, that linearization is accurate in both the polynomial model and the real system — so there are no model errors to exploit.
+</div>
 
-| DreamerV3 concept | This project |
-|---|---|
-| Latent world model (RSSM) | SINDy surrogate — explicit, interpretable |
-| "Dreaming" (policy training) | PPO in `SINDySurrogateEnv` |
-| World model update | Refit SINDy on expanded dataset |
-| Real-env interaction | Controller rollout in MuJoCo |
+</div>
 
 ---
 
@@ -659,36 +649,35 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 
 <div>
 
-**Iterative RMSE convergence:**
+**SINDy RMSE convergence** (fixed validation set):
 
-| Iteration | One-step RMSE | Real sim steps |
+| Iteration | RMSE | Cumulative transitions |
 |---|---|---|
-| 0 (bootstrap) | — | ~3,000 |
-| 1 | Δ large | +~5,000 |
-| 2 | Δ small | +~5,000 |
-
-<div style="font-size:0.78em; color:#888; margin-top:0.3em;">
-  Each iteration trains a better policy which collects better data.
-</div>
+| 0 (bootstrap) | 0.188 | 5,000 |
+| 1 | 0.182 | 10,000 |
+| 2 | 0.085 | 15,000 |
 
 <div class="gold-box" style="margin-top:0.5em; font-size:0.83em;">
-  Baseline NN required <strong>400,000</strong> real-sim steps.<br>
-  ROM surrogate target: <strong>&lt; 50,000</strong> — 8× more data-efficient.
+  Baseline NN: <strong>400,000</strong> real-sim steps.<br>
+  SINDy-LQR: <strong>15,000</strong> — <strong>27× more data-efficient.</strong>
 </div>
 
 </div>
 
 <div>
 
-**Surrogate environment** — exact reward replica:
+**LQR transfer — real MuJoCo evaluation** (10 episodes per iteration):
 
-$$r = 10 - \bigl(0.01\,x_\text{tip}^2 + (y_\text{tip}-2)^2\bigr) - v_\text{pen}$$
+| Iteration | Mean return | Mean length | Success |
+|---|---|---|---|
+| 0 | 9359.88 | 1,000 | <span class="check">100%</span> |
+| 1 | 9359.87 | 1,000 | <span class="check">100%</span> |
+| 2 | 9359.90 | 1,000 | <span class="check">100%</span> |
 
-$$y_\text{tip} = L_1\cos\theta_1 + L_2\cos(\theta_1+\theta_2)$$
-
-The SINDy model is **interpretable dynamics**:
-
-$$x_{k+1} = x_k + \Delta t \cdot \Xi^T \Theta(x_k, u_k)$$
+<div style="font-size:0.76em; color:#555; margin-top:0.3em;">
+  LQR gain computed from SINDy linearized around upright.<br>
+  Mean return matches the full-order baseline (9,359) exactly.
+</div>
 
 </div>
 </div>
@@ -705,26 +694,30 @@ $$x_{k+1} = x_k + \Delta t \cdot \Xi^T \Theta(x_k, u_k)$$
 | Approach | Real-sim steps | Policy type | Mean length | Success | Interpretable |
 |---|---|---|---|---|---|
 | **Baseline NN** | 400,000 | NN (9,731 params) | 1,000 | 100% | <span class="cross">✗</span> |
-| **Sparse policy (base)** | 400,000 | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> |
-| **Sparse policy (augmented)** | 400,000* | Polynomial | ~500–900 | ~50–90% | <span class="check">✓</span> |
-| **ROM surrogate RL** | ~50,000 (est.) | NN in surrogate | TBD | TBD | <span class="partial">◑</span> |
+| **Sparse policy (base)** | 400,000* | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> |
+| **Sparse policy (augmented)** | 400,000* | Polynomial (8 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> |
+| **Polynomial actor** | 1,000,000 | Polynomial (22 terms) | **1,000** | **100%** | <span class="check">✓</span> |
+| **SINDy + PPO-in-surrogate** | ~50,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> |
+| **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> |
 | **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> |
 
 <div style="font-size:0.72em; color:#888; margin-top:0.3em;">
-  * No additional real-sim steps beyond baseline training — augmentation uses oracle queries only.
+  * Inherits baseline training data — no additional agent training, one-shot regression from oracle queries.
 </div>
 
 
 ---
 
 <!-- ─────────────────────────────────────────────────
-  SLIDE 16 · STRETCH GOAL
+  SLIDE 13 · STRETCH GOAL
 ───────────────────────────────────────────────── -->
-<!-- _class: section -->
+<!-- _backgroundColor: #F0EDF7 -->
 
 # Stretch Goal
 
 ### Phase 3 · Fully Interpretable Closed-Loop Control
+
+<br>
 
 Combine the interpretable **dynamics** (ROM) with the interpretable **policy** (sparse dictionary)
 
@@ -732,25 +725,26 @@ Combine the interpretable **dynamics** (ROM) with the interpretable **policy** (
 
 
 <!-- ─────────────────────────────────────────────────
-  SLIDE 13 · Bonus
+  SLIDE 14 · BONUS
 ───────────────────────────────────────────────── -->
+<!-- _backgroundColor: #F0EDF7 -->
 
-# Bonus
+![bg right:48%](swing_up_animation_cropped.gif)
 
-Make it works from down initial position
+# Bonus Stretch Goal
 
-![swing-up w:250](swing_up_animation.gif)
+### For Fun
 
-<div class="gold-box" style="text-align:center; font-size:0.85em; margin-top:0.4em;">
+<p style="margin-top:0.5em;"><strong>2</strong> chained PPO policies: swing-up (energy pumping) + stabilizer.</p>
 
-**Currently**: Swing-up PPO → handoff → Stabilizer PPO &nbsp;·&nbsp; 304 steps (15.2 s) &nbsp;·&nbsp; <strong>SUCCESS</strong>
+<div class="eq-box" style="font-size:0.75em; margin-top:0.1em; background: white"><strong>NN baseline:</strong> Swing-up PPO → handoff → Stabilizer PPO<br>304 steps &nbsp;·&nbsp; 15.2 s &nbsp;·&nbsp; <strong>SUCCESS</strong></div>
 
-</div>
+<div class="gold-box" style="font-size:0.82em; margin-top:0.5em;"><strong>Goal:</strong> reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</div>
 
 ---
 
 <!-- ─────────────────────────────────────────────────
-  SLIDE 14 · CLOSING
+  SLIDE 15 · CLOSING
   Andrew — 0:15
 ───────────────────────────────────────────────── -->
 <!-- _class: title -->

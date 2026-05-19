@@ -70,12 +70,12 @@
 <tr>
 <td>6</td>
 <td>The obstacle: SINDyC is a chicken-and-egg problem</td>
-<td>Both</td>
+<td>Andrew</td>
 <td>State the three-line problem plainly. This was a shared discovery that reshaped the plan — both should speak to it briefly. End with the solution (iterative co-training).</td>
 <td>SINDyC is a chicken-and-egg problem</td>
 <td>0:50</td>
 </tr>
-<tr><td colspan="6"><em>[Patrick]: "Before we could do any of that, we hit a wall. The random policy crashes in five steps — the system never reaches equilibrium. SINDyC cannot learn the dynamics that matter." [Andrew]: "But you need a controller to collect near-equilibrium data. You need the data to train SINDyC. You need SINDyC to build the controller. We had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop."</em></td></tr>
+<tr><td colspan="6"><em>"Before we could do any of that, we hit a wall. The random policy crashes in five steps — the system never reaches equilibrium. SINDyC cannot learn the dynamics that matter. You need a controller to collect near-equilibrium data. You need the data to train SINDyC. You need SINDyC to build the controller. We had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop."</em></td></tr>
 
 <tr>
 <td>7</td>
@@ -85,7 +85,7 @@
 <td>Baseline — the performance ceiling</td>
 <td>0:30</td>
 </tr>
-<tr><td colspan="6"><em>"Before we could measure progress we needed a ceiling. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and data-efficient."</em></td></tr>
+<tr><td colspan="6"><em>"Before we could measure progress we needed a baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient."</em></td></tr>
 
 <tr>
 <td>8</td>
@@ -95,7 +95,7 @@
 <td>Sparse policy distillation — the compounding error trap</td>
 <td>0:50</td>
 </tr>
-<tr><td colspan="6"><em>"We already trained the PPO baseline — so we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse."</em></td></tr>
+<tr><td colspan="6"><em>"Since we already trained the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse."</em></td></tr>
 
 <tr>
 <td>9</td>
@@ -109,53 +109,53 @@
 
 <tr>
 <td>10</td>
-<td>ROM surrogate: active SINDy loop</td>
+<td>ROM surrogate: SINDy dynamics + LQR control — and the PPO transfer failure that motivated LQR</td>
 <td>Andrew</td>
-<td>Explain the iterative loop (bootstrap → fit SINDy → train PPO in surrogate → deploy → collect → repeat). Draw the DreamerV3 analogy: this is an interpretable latent world model. This is Andrew's core contribution.</td>
-<td>ROM surrogate — train RL inside an interpretable model</td>
+<td>Walk through the SVG loop diagram (Bootstrap → Fit SINDy → Linearize → LQR gain → Deploy → Collect data → repeat). Then explain the two-panel roadblock/solution: (1) PPO converged inside the surrogate but exploited polynomial approximation errors — 24 steps in real MuJoCo; (2) LQR only uses the Jacobian at the upright fixed point, which is accurate in both model and real system. This is Andrew's core contribution.</td>
+<td>ROM surrogate — SINDy dynamics + LQR control</td>
 <td>0:50</td>
 </tr>
-<tr><td colspan="6"><em>"On the dynamics side, the key idea is to train the RL policy inside the SINDy surrogate rather than the real simulator — the surrogate is fast, cheap to run, and runs anywhere. Instead of paying the cost of 400,000 real environment steps, you pay it once to bootstrap, then iterate almost entirely inside the equation. We bootstrap with a PD controller plus random perturbations, fit SINDy, train PPO inside the surrogate, deploy to the real simulator, collect near-equilibrium data, and repeat. Each iteration produces a better policy, which produces better data, which improves the surrogate. If you've seen DreamerV3, this is the same loop — but instead of a learned latent neural network model, the world model is an explicit polynomial equation you can read."</em></td></tr>
+<tr><td colspan="6"><em>"On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate in both the model and the real system — so there are no model errors to exploit."</em></td></tr>
 
 <tr>
 <td>11</td>
-<td>ROM results so far</td>
+<td>ROM results — 27× data efficiency, 100% success</td>
 <td>Andrew</td>
-<td>Show RMSE convergence table and surrogate reward equations. Be honest: framework is implemented and validated; full policy evaluation is in progress. State the data efficiency target (8× vs. baseline).</td>
+<td>Show RMSE convergence table (0.188→0.182→0.085 over three iterations, 5k/10k/15k transitions). Show LQR transfer table: all three iterations achieve 100% success, 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Gold box: 15,000 real-sim steps vs. baseline's 400,000 — 27× more data-efficient.</td>
 <td>ROM surrogate — results</td>
 <td>0:40</td>
 </tr>
-<tr><td colspan="6"><em>"The iterative framework converges — each round reduces one-step RMSE and improves policy quality in the surrogate. We're on track toward our target of under 50,000 real simulator interactions — an 8× improvement over the 400,000 the full-order baseline required. Full end-to-end policy evaluation in the real simulator is in progress."</em></td></tr>
+<tr><td colspan="6"><em>"Here are the results. The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient."</em></td></tr>
 
 <tr>
 <td>12</td>
 <td>How do they compare?</td>
 <td>Both</td>
-<td>Walk the comparison table row by row. Acknowledge TBD entries honestly. Mention Phase 3 stretch goal (combining both) in one sentence.</td>
+<td>Walk the table row by row. Key callouts: (1) sparse base and augmented both carry the 400k baseline cost (*) but require no additional training; (2) polynomial actor achieves 100% but at 1M steps — more than the baseline; (3) SINDy+PPO-in-surrogate row is the roadblock — cheap data but fails; (4) SINDy-LQR wins on every dimension. Phase 3 is a one-sentence close.</td>
 <td>How do they compare?</td>
 <td>0:40</td>
 </tr>
-<tr><td colspan="6"><em>[Patrick]: "Here's where things stand. The baseline NN is the ceiling — perfect, but opaque. Basic behavioral cloning is interpretable but fragile at deployment noise. Augmented distillation recovers most of the robustness — 50 to 90% success — with zero extra simulator interactions." [Andrew]: "The ROM surrogate RL is on track for 8× data efficiency; full results pending. Phase 3 stretch goal would combine both into a single interpretable closed loop."</em></td></tr>
+<tr><td colspan="6"><em>[Patrick]: "Here's the full picture. The baseline NN is the ceiling — perfect performance, but opaque and data-hungry. Behavioral cloning gives us an interpretable 8-term polynomial, essentially for free — but it's fragile at deployment noise. Augmenting the data recovers most of that robustness, 50 to 90% success, still at no additional simulator cost. The polynomial actor breaks through the Tanh ceiling and hits 100% — but it required a million simulator interactions, more than the baseline itself." [Andrew]: "On the dynamics side: we tried PPO inside the SINDy surrogate — cheap data, but the policy exploited the model and averaged 24 steps in MuJoCo. Switching to LQR from the linearized model fixed the transfer problem entirely — 100% success at 15,000 real-sim steps. That's 27 times more data-efficient than the baseline. Phase 3 would close the loop: interpretable dynamics and interpretable policy, end to end."</em></td></tr>
 
 <tr>
 <td>13</td>
 <td>Stretch goal: fully interpretable closed-loop control</td>
 <td>Both</td>
 <td>Section divider. One sentence: combine the interpretable dynamics (ROM) with the interpretable policy (sparse dictionary).</td>
-<td>Stretch Goal — Phase 3 · Fully Interpretable Closed-Loop Control</td>
+<td>Stretch Goal</td>
 <td>0:10</td>
 </tr>
 <tr><td colspan="6"><em>"Phase 3 is the stretch goal: combine the interpretable dynamics model from the ROM track with the sparse polynomial policy from the distillation track — a fully interpretable closed loop, end to end."</em></td></tr>
 
 <tr>
 <td>14</td>
-<td>Bonus: swing-up from hanging — it already works</td>
+<td>Bonus: what if we started from the pendulum down position? NN PPO achieves it — SINDy-RL is the goal.</td>
 <td>Patrick</td>
-<td>Play the animation. Two-agent hybrid controller: swing-up PPO brings the pendulum from hanging (θ₁≈π) to near-upright, then hands off to stabilizer PPO. 304 steps, 15.2 s, SUCCESS.</td>
-<td>Bonus — swing-up from hanging initial position</td>
+<td>Pose the question: all the stabilization work assumed a near-upright start — what about hanging? Show the animation as the NN baseline: hybrid PPO (swing-up → handoff → stabilizer) achieves 304 steps, 15.2 s, SUCCESS. Frame the goal explicitly: reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</td>
+<td>Bonus Stretch Goal</td>
 <td>0:30</td>
 </tr>
-<tr><td colspan="6"><em>"As a bonus — we went beyond just balancing. The stabilization work we've shown assumes you start near equilibrium. But what about starting from all the way down? We trained a two-agent hybrid: a swing-up PPO that pumps energy into the system from a hanging start, and the stabilizer PPO that takes over once the poles are close enough to vertical. Here it is — 304 steps, about 15 seconds, successful balance."</em></td></tr>
+<tr><td colspan="6"><em>"One more question before we close. Everything we've shown assumed you start near the upright equilibrium. But what about starting all the way down — pendulum hanging, zero energy? That's a fundamentally harder problem. You have to pump energy into the system, swing the poles up through a chaotic trajectory, then hand off to a stabilizer at just the right moment. A neural network hybrid — swing-up PPO into stabilizer PPO — can do it: 304 steps, 15 seconds, success. That's the NN baseline. The goal is to do the same thing with SINDy-RL: an interpretable swing-up controller handing off to the interpretable LQR stabilizer we've already built. That's the next step."</em></td></tr>
 
 <tr>
 <td>15</td>
@@ -180,6 +180,10 @@
 - **Degree-4 is Patrick's finding only** — degree-4 was required for the policy library. The dynamics library degree for SINDyC is a separate question. Andrew should not foreshadow a degree finding he doesn't own; the degree-4 payoff lives entirely in slide 8 (Patrick).
 - **Slide 8 focuses on distribution shift / compounding errors only** — the Tanh/polynomial mismatch is introduced on slide 9 as the explanation for the R²≈0.97 ceiling after augmentation. Keep these two problems on their respective slides.
 - **Slide 9 polynomial actor note** — degree-2 sufficient because the actor IS a degree-2 polynomial by construction (no Tanh). OLS recovers it exactly (R²=1.000); STLSQ at thr=0.01 retains 22/44 terms at R²=0.999.
-- **Slide 13 (Stretch Goal)** is a section divider (_class: section, purple background). Keep it brief — 10 seconds max.
-- **Slide 14 (Bonus animation)** — GIF animates in HTML export; PDF shows first frame (pendulum hanging). When recording off HTML, let the animation play through before speaking.
+- **Why degree-4 for Tanh NN but degree-2 for polynomial actor (Q&A):** The policy itself does not require degree-4 — the polynomial actor proves degree-2 is sufficient to represent a good stabilizing policy. Degree-4 was needed specifically when fitting a *Tanh NN* with STLSQ. Near equilibrium, Tanh ≈ identity and the state is near zero, so the cross-coupling terms (θ₁·θ₂, θ₁·θ̇₂, etc.) appear small in the NN's output. STLSQ's threshold treats them as negligible and prunes them — even though they matter off-equilibrium. A richer degree-4 library spreads the cross-coupling signal across more basis functions, giving STLSQ room to retain the right combination. When the expert IS a polynomial (polynomial actor), there is no projection error and no over-pruning problem — OLS recovers the true coefficients exactly at degree-2.
+- **Slide 10 — LQR, not PPO** — Andrew's actual result is SINDy → linearize → LQR. PPO-in-surrogate was tested but failed in real MuJoCo (24 steps avg). Do not present PPO as the approach; LQR is the one that transfers.
+- **Slide 11 numbers** — RMSE: 0.188 / 0.182 / 0.085 at 5k / 10k / 15k transitions. LQR: 100% success, 1,000 steps, mean return 9,359.88/87/90 at all three iterations. 27× data efficiency vs. baseline (15k vs. 400k).
+- **Slide 12 table rows** — 7 data rows + header. Key distinctions: sparse base/augmented have * (inherits 400k, no retraining); polynomial actor has NO * (fresh 1M-step PPO run); SINDy+PPO row exists to show the roadblock (PPO exploited model errors → 24 steps); SINDy-LQR is the payoff row. The contrast between SINDy+PPO and SINDy-LQR on adjacent rows makes the design decision legible.
+- **Slide 13 (Stretch Goal)** uses a light purple background (_backgroundColor: #F0EDF7, no section class). Keep it brief — 10 seconds max.
+- **Slide 14 (Bonus animation)** — GIF animates in HTML export; PDF shows first frame (pendulum hanging). When recording off HTML, let the animation play through before speaking. The framing is: NN hybrid is the *baseline target* — the goal is to reproduce it with SINDy-RL (interpretable swing-up + LQR stabilizer). Don't present the NN result as the final achievement; present it as what we're trying to match interpretably.
 - **Trig library experiment** (not on slides, useful for Q&A): polynomial + trig features (appending sin/cos of joint angles) was tested but achieved only R²≈0.90 — worse than pure degree-4 polynomial (R²≈0.97). The ceiling is from Tanh, not from polynomial vs. trig choice.
