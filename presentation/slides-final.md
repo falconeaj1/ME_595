@@ -464,7 +464,7 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
 </div>
 
 <!--
-SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities, and for the double pendulum that bar is high.
+SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.
 -->
 
 ---
@@ -499,8 +499,14 @@ You can't train near equilibrium without reaching it — and you can't reach it 
   Solution: co-train the controller and surrogate in an iterative active-learning loop.
 </div>
 
+SINDy - open loop dynamics
+SINDYc - co-training, bootstrap, and incrementally get better
+ 
+
 <!--
-Before we could do any of that, we hit a wall. The random policy crashes in five steps — the system never reaches equilibrium. SINDyC cannot learn the dynamics that matter. You need a controller to collect near-equilibrium data. You need the data to train SINDyC. You need SINDyC to build the controller. We had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.
+However, we hit a wall! Since the inverted pendulum is inherently unstable, using SINDy (open loop dynamics), we could not gate data near equilibrium. Instead, we had to train SINDy with conrol (SINDyC). We start by bootstrapping, and over multiple iterations incrementally improve the controller which allows us to better explore the dynamics near equilibirum.
+
+We essentially had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.
 -->
 
 ---
@@ -591,7 +597,8 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 </div>
 
 <!--
-Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse.
+Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, we ended up with a degree-4 polynomial to capter the cross-coupling nonlinearities, wich is over 200 possible terms that the regression retained only a handful.
+Distilling the NN expert into a sparse policy dictionary succeeded, but as the plot shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.
 -->
 
 ---
@@ -626,15 +633,14 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 | Base policy | ~200 steps | ~20 steps ✗ |
 | Augmented | ~1000 steps ✓ | ~500–900 steps |
 
+<br>
+
 <div style="font-size:0.75em; color:#888; margin-top:0.4em;">Baseline NN: 1000 steps at all noise levels</div>
+
+<br>
 
 <div class="box" style="margin-top:0.6em; font-size:0.83em;">
   <strong>25–45× more robust</strong> — zero additional simulator interactions.
-</div>
-
-<div class="gold-box" style="margin-top:0.5em; font-size:0.74em;">
-  R²≈0.97 ceiling: Tanh NN ≠ polynomial — structural mismatch.<br>
-  <span class="check">✓</span> <strong>Polynomial actor</strong>: degree-2 library, 44→22 terms (STLSQ) → R² = 0.999, 1000/1000 steps at all noise.
 </div>
 
 </div>
@@ -642,7 +648,7 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 </div>
 
 <!--
-The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. Three rounds, four times the data — 50k to 200k pairs. STLSQ re-fit recovers cross-coupling terms that were incorrectly pruned before. Result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions. There is a ceiling though — R²≈0.97 — because a polynomial can't exactly represent the Tanh activations in the NN. To break through it, the expert itself needs to be polynomial. A polynomial actor achieves R²=0.999 with a degree-2 library — 44 terms, STLSQ retains 22 — and runs 1,000 steps at all noise levels.
+The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. We chose three rounds resulting in four times the original data. The result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions.
 -->
 
 ---
@@ -671,7 +677,7 @@ The fix suggested in the Zolman paper came from a simple insight: the NN policy 
 </div>
 
 <!--
-On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate in both the model and the real system — so there are no model errors to exploit.
+On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate.
 -->
 
 ---
@@ -692,8 +698,8 @@ On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize 
 | Iteration | RMSE | Cumulative transitions |
 |---|---|---|
 | 0 (bootstrap) | 0.188 | 5,000 |
-| 1 | 0.182 | 10,000 |
-| 2 | 0.085 | 15,000 |
+| 1 | 0.182  | 10,000 |
+| 2 | 0.1844 | 15,000 |
 
 <div class="gold-box" style="margin-top:0.5em; font-size:0.83em;">
   Baseline NN: <strong>400,000</strong> real-sim steps.<br>
@@ -721,7 +727,9 @@ On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize 
 </div>
 
 <!--
-Here are the results. The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.
+We start the process by bootstrapping random initial states near equilibrium, and use the full MuJoCo environment to train an SINDy model to predict next state based on current state and action. We then use this SINDyC model to train an LQR controller that we then deploy on the MuJoCo envirnoment, which allows us to gather more data near equilibirum. We repreat the process to reduce RMSE error so that our SINDy model can be a good enough surrogate to train an RL "expert".
+
+Here are the preliminary results. The LQR controller trained on the SINDy transfersOn the fixed vaidation set, the SINDy model shows low Root Mean Square Error and a Linear Quadratic Regulator is able to successfully transfer from the learned SINDy reduced order model The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.
 -->
 
 ---
@@ -733,15 +741,15 @@ Here are the results. The iterative framework converges — each round reduces R
 
 # How do they compare?
 
-| Approach | Real-sim steps | Policy type | Mean length | Success | Interpretable |
-|---|---|---|---|---|---|
-| **Baseline NN** | 400,000 | NN (9,731 params) | 1,000 | 100% | <span class="cross">✗</span> |
-| **Sparse policy (base)** | 400,000* | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> |
-| **Sparse policy (augmented)** | 400,000* | Polynomial (8 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> |
-| **Polynomial actor** | 1,000,000 | Polynomial (22 terms) | **1,000** | **100%** | <span class="check">✓</span> |
-| **SINDy + PPO-in-surrogate** | ~15,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> |
-| **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> |
-| **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> |
+| Approach | Real-sim steps | Policy type | Mean length | Success | Interpretable | Data Efficiency |
+|---|---|---|---|---|---|---|
+| **Baseline NN** | 400,000 | NN (9,731 params) | 1,000 | 100% | <span class="cross">✗</span> | - |
+| **Sparse policy (base)** | 400,000* | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> | <span class="check">✓</span> |
+| **Sparse policy (augmented)** | 400,000* | Polynomial (8 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> | <span class="check">✓</span> |
+| **Polynomial actor** | 1,000,000 | Polynomial (22 terms) | **1,000** | **100%** | <span class="check">✓</span> | <span class="cross">✗</span> |
+| **SINDy + PPO-in-surrogate** | ~15,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> | <span class="check">✓</span> |
+| **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> | <span class="check">✓</span> |
+| **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> | <span class="check">✓</span> |
 
 <div style="font-size:0.72em; color:#888; margin-top:0.3em;">
   * Inherits baseline training data — no additional agent training, one-shot regression from oracle queries.

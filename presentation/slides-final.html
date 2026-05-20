@@ -142,6 +142,8 @@ c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z"/></svg></span></span></
 <div class="gold-box" style="font-size:0.83em;">
   Solution: co-train the controller and surrogate in an iterative active-learning loop.
 </div>
+<p>SINDy - open loop dynamics<br />
+SINDYc - co-training, bootstrap, and incrementally get better</p>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-theme="default" lang="en-US" data-marpit-pagination="7" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--theme:default;" data-marpit-pagination-total="15" data-size="16:9">
@@ -256,13 +258,11 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 </tr>
 </tbody>
 </table>
+<br />
 <div style="font-size:0.75em; color:#888; margin-top:0.4em;">Baseline NN: 1000 steps at all noise levels</div>
+<br />
 <div class="box" style="margin-top:0.6em; font-size:0.83em;">
   <strong>25–45× more robust</strong> — zero additional simulator interactions.
-</div>
-<div class="gold-box" style="margin-top:0.5em; font-size:0.74em;">
-  R²≈0.97 ceiling: Tanh NN ≠ polynomial — structural mismatch.<br />
-  <span class="check">✓</span> <strong>Polynomial actor</strong>: degree-2 library, 44→22 terms (STLSQ) → R² = 0.999, 1000/1000 steps at all noise.
 </div>
 </div>
 </div>
@@ -370,6 +370,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <th>Mean length</th>
 <th>Success</th>
 <th>Interpretable</th>
+<th>Data Efficiency</th>
 </tr>
 </thead>
 <tbody>
@@ -380,6 +381,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>1,000</td>
 <td>100%</td>
 <td><span class="cross">✗</span></td>
+<td>-</td>
 </tr>
 <tr>
 <td><strong>Sparse policy (base)</strong></td>
@@ -387,6 +389,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>Polynomial (8 terms)</td>
 <td>~20 @ σ=0.3</td>
 <td>Low</td>
+<td><span class="check">✓</span></td>
 <td><span class="check">✓</span></td>
 </tr>
 <tr>
@@ -396,6 +399,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>~500–900</td>
 <td>~50–90%</td>
 <td><span class="check">✓</span></td>
+<td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>Polynomial actor</strong></td>
@@ -404,6 +408,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td><strong>1,000</strong></td>
 <td><strong>100%</strong></td>
 <td><span class="check">✓</span></td>
+<td><span class="cross">✗</span></td>
 </tr>
 <tr>
 <td><strong>SINDy + PPO-in-surrogate</strong></td>
@@ -412,6 +417,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>~24</td>
 <td>~0%</td>
 <td><span class="cross">✗</span></td>
+<td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>SINDy-LQR</strong></td>
@@ -420,6 +426,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td><strong>1,000</strong></td>
 <td><strong>100%</strong></td>
 <td><span class="check">✓</span></td>
+<td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>Phase 3 (stretch)</strong></td>
@@ -427,6 +434,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>Polynomial</td>
 <td>—</td>
 <td>—</td>
+<td><span class="check">✓</span></td>
 <td><span class="check">✓</span></td>
 </tr>
 </tbody>
@@ -471,22 +479,25 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
   Andrew — 0:55
 
 
-─────────────────────────────────────────────────</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities, and for the double pendulum that bar is high.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 5 · OBJECTIVES
   Both — 0:35
 ─────────────────────────────────────────────────</p><p>[Andrew]: &quot;We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside.&quot; [Patrick]: &quot;And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller.</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 6 · CHICKEN-AND-EGG
   Both — 0:50
-─────────────────────────────────────────────────</p><p>Before we could do any of that, we hit a wall. The random policy crashes in five steps — the system never reaches equilibrium. SINDyC cannot learn the dynamics that matter. You need a controller to collect near-equilibrium data. You need the data to train SINDyC. You need SINDyC to build the controller. We had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.</p></div><div class="bespoke-marp-note" data-index="6" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>However, we hit a wall! Since the inverted pendulum is inherently unstable, using SINDy (open loop dynamics), we could not gate data near equilibrium. Instead, we had to train SINDy with conrol (SINDyC). We start by bootstrapping, and over multiple iterations incrementally improve the controller which allows us to better explore the dynamics near equilibirum.
+
+We essentially had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.</p></div><div class="bespoke-marp-note" data-index="6" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 7 · BASELINE
   Patrick — 0:30
 ─────────────────────────────────────────────────</p><p>We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient.</p></div><div class="bespoke-marp-note" data-index="7" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 8 · SPARSE POLICY DISTILLATION
   Patrick — 0:50
-─────────────────────────────────────────────────</p><p>Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse.</p></div><div class="bespoke-marp-note" data-index="8" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, we ended up with a degree-4 polynomial to capter the cross-coupling nonlinearities, wich is over 200 possible terms that the regression retained only a handful.
+Distilling the NN expert into a sparse policy dictionary succeeded, but as the plot shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.</p></div><div class="bespoke-marp-note" data-index="8" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 9 · THE FIX
   Patrick — 0:40
-─────────────────────────────────────────────────</p><p>The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. Three rounds, four times the data — 50k to 200k pairs. STLSQ re-fit recovers cross-coupling terms that were incorrectly pruned before. Result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions. There is a ceiling though — R²≈0.97 — because a polynomial can't exactly represent the Tanh activations in the NN. To break through it, the expert itself needs to be polynomial. A polynomial actor achieves R²=0.999 with a degree-2 library — 44 terms, STLSQ retains 22 — and runs 1,000 steps at all noise levels.</p></div><div class="bespoke-marp-note" data-index="9" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. We chose three rounds resulting in four times the original data. The result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions.</p></div><div class="bespoke-marp-note" data-index="9" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 10 · ROM SURROGATE — ACTIVE LOOP
   Andrew — 0:50
 ─────────────────────────────────────────────────</p><p>On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate in both the model and the real system — so there are no model errors to exploit.</p></div><div class="bespoke-marp-note" data-index="10" tabindex="0"><p>─────────────────────────────────────────────────
