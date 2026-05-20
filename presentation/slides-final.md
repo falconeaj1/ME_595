@@ -432,7 +432,7 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
 
 <div class="cols" style="gap:1em; margin-top:0.4em;">
 <div class="gold-box">
-<b>STLSQ solver</b> drives most coefficients to <em>exactly zero</em> — exposing the true governing terms.
+<b>STLSQ solver</b> drives most coefficients to <em>exactly zero</em> —  leaving a sparse equation with only the dominant governing terms.
 </div>
 <div class="box">
 <b>Library degree <em>d</em> is a design choice</b> — it must match the complexity of the system and is not obvious a priori.
@@ -533,7 +533,7 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 **But the policy fails in deployment.**
 
 <div style="font-size:0.75em; color:#888; margin-top:0.2em; text-align:center;">
-  At noise σ = 0.3 rad: <strong>1000 steps → ~20 steps</strong>
+  At noise σ = 0.3 : <strong>1000 steps → ~20 steps</strong>
 </div>
 
 </div>
@@ -545,8 +545,8 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 | Noise σ | Mean episode length |
 |---|---|
 | 0 (training) | ~1000 steps ✓ |
-| 0.1 rad | ~200 steps |
-| 0.3 rad | ~20 steps ✗ |
+| 0.1 | ~200 steps |
+| 0.3 | ~20 steps ✗ |
 
 </div>
 </div>
@@ -577,7 +577,7 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 
 For each of 3 rounds:
 
-1. Perturb states: $\tilde x = x + \varepsilon,\;\;\varepsilon \sim \mathcal{N}(0,\,0.15^2)$
+1. Perturb states: $\tilde x = x + \varepsilon,\;\;\varepsilon \sim \mathcal{N}(0,\,\sigma^2)$
 2. Query oracle: $\tilde u = \pi_\text{NN}(\tilde x)$
 3. Append $(\tilde x,\tilde u)$ to dataset
 
@@ -694,7 +694,7 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 | **Sparse policy (base)** | 400,000* | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> |
 | **Sparse policy (augmented)** | 400,000* | Polynomial (8 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> |
 | **Polynomial actor** | 1,000,000 | Polynomial (22 terms) | **1,000** | **100%** | <span class="check">✓</span> |
-| **SINDy + PPO-in-surrogate** | ~50,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> |
+| **SINDy + PPO-in-surrogate** | ~15,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> |
 | **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> |
 | **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> |
 
