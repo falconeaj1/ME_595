@@ -35,7 +35,7 @@
 <td>What if the controller was just an equation?</td>
 <td>1:00</td>
 </tr>
-<tr><td colspan="6"><em>"Think about where autonomous control actually needs to go: a surgical robot that a regulator has to certify before it touches a patient. A drone flying a power-line inspection with no cloud connection and a microcontroller for a brain. A spacecraft controller that has to be formally verified before launch. In every one of those cases, a ten-thousand-parameter neural network is a dead end — you can't certify what you can't explain, and you can't run a GPU on a battery-powered UAV. But if the controller is eight terms, you can prove its stability bounds, audit every decision, and flash it onto the cheapest embedded chip. That's what we're trying to build — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a sparse governing equation. Eight terms, every coefficient physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us."</em></td></tr>
+<tr><td colspan="6"><em>"Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a few terms, you can prove its stability bounds, audit every decision, and flash it onto embedded chips. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a sparse governing equation where every coefficient is physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us."</em></td></tr>
 
 <tr>
 <td>3</td>
@@ -65,7 +65,7 @@
 <td>Two objectives — one interpretable controller</td>
 <td>0:35</td>
 </tr>
-<tr><td colspan="6"><em>[Andrew]: "Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller."</em></td></tr>
+<tr><td colspan="6"><em>[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller."</em></td></tr>
 
 <tr>
 <td>6</td>
@@ -85,7 +85,7 @@
 <td>Baseline — the performance ceiling</td>
 <td>0:30</td>
 </tr>
-<tr><td colspan="6"><em>"Before we could measure progress we needed a baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient."</em></td></tr>
+<tr><td colspan="6"><em>"We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient."</em></td></tr>
 
 <tr>
 <td>8</td>
@@ -95,7 +95,7 @@
 <td>Sparse policy distillation — the compounding error trap</td>
 <td>0:50</td>
 </tr>
-<tr><td colspan="6"><em>"Since we already trained the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse."</em></td></tr>
+<tr><td colspan="6"><em>"Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse."</em></td></tr>
 
 <tr>
 <td>9</td>
@@ -105,7 +105,7 @@
 <td>The fix: query the oracle, for free</td>
 <td>0:40</td>
 </tr>
-<tr><td colspan="6"><em>"The fix came from a simple insight: the NN policy has no memory — it's a pure function of state. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. Three rounds, four times the data — 50k to 200k pairs. STLSQ re-fit recovers cross-coupling terms that were incorrectly pruned before. Result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions. There is a ceiling though — R²≈0.97 — because a polynomial can't exactly represent the Tanh activations in the NN. To break through it, the expert itself needs to be polynomial. A polynomial actor achieves R²=0.999 with a degree-2 library — 44 terms, STLSQ retains 22 — and runs 1,000 steps at all noise levels."</em></td></tr>
+<tr><td colspan="6"><em>"The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. Three rounds, four times the data — 50k to 200k pairs. STLSQ re-fit recovers cross-coupling terms that were incorrectly pruned before. Result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions. There is a ceiling though — R²≈0.97 — because a polynomial can't exactly represent the Tanh activations in the NN. To break through it, the expert itself needs to be polynomial. A polynomial actor achieves R²=0.999 with a degree-2 library — 44 terms, STLSQ retains 22 — and runs 1,000 steps at all noise levels."</em></td></tr>
 
 <tr>
 <td>10</td>

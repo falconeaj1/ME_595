@@ -358,6 +358,10 @@ img[alt~="sindy-loop"]  { display: block; margin: 0.3em auto; }
 
 ME 595 &nbsp;·&nbsp; University of Washington &nbsp;·&nbsp; Spring 2026
 
+<!--
+Welcome — I'm Patrick Smith, and this is Andrew Falcone. We're going to walk you through our project applying SINDy-RL to the inverted double pendulum. Andrew's been working on the dynamics identification side; I've been working on the control policy side. Let's get into it.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
@@ -380,6 +384,10 @@ $$u(x) = \underbrace{-2.4\,\theta_1}_{\text{balance}}
 <div class="gold-box">
 8 terms &nbsp;·&nbsp; every coefficient has a physical interpretation &nbsp;·&nbsp; fits on a napkin
 </div>
+
+<!--
+Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a few terms, you can prove its stability bounds, audit every decision, and flash it onto embedded chips. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a sparse governing equation where every coefficient is physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.
+-->
 
 ---
 
@@ -415,11 +423,17 @@ $$x = \begin{bmatrix} x_{\text{cart}} \\ \theta_1 \\ \theta_2 \\ \dot x_{\text{c
 </div>
 </div>
 
+<!--
+Our testbed is the inverted double pendulum — two poles balanced upright on a cart. Six-dimensional state: cart position, two joint angles, and their rates. The only input is a horizontal cart force. What makes this hard: the upright equilibrium is unstable. A random policy crashes in about five steps — you never reach the near-equilibrium region. And that's exactly where data-driven dynamics identification is most needed.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
   SLIDE 4 · SINDY
   Andrew — 0:55
+
+
 ───────────────────────────────────────────────── -->
 
 # SINDy — Discovering equations from data
@@ -449,6 +463,10 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
   &nbsp;&nbsp;|&nbsp;&nbsp; Koopman as the competing paradigm
 </div>
 
+<!--
+SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities, and for the double pendulum that bar is high.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
@@ -459,6 +477,10 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
 # Two objectives — one interpretable controller
 
 <img src="objectives_diagram.png" style="display:block; margin:1.2em auto 0; width:1060px;" alt="chicken-egg diagram">
+
+<!--
+[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller.
+-->
 
 ---
 
@@ -476,6 +498,10 @@ You can't train near equilibrium without reaching it — and you can't reach it 
 <div class="gold-box" style="font-size:0.83em;">
   Solution: co-train the controller and surrogate in an iterative active-learning loop.
 </div>
+
+<!--
+Before we could do any of that, we hit a wall. The random policy crashes in five steps — the system never reaches equilibrium. SINDyC cannot learn the dynamics that matter. You need a controller to collect near-equilibrium data. You need the data to train SINDyC. You need SINDyC to build the controller. We had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.
+-->
 
 ---
 
@@ -510,6 +536,10 @@ A standard PPO agent trained with **full simulator access**.
 <div class="gold-box" style="margin-top:0.9em; font-size:0.85em;">
   <strong>50,000 transitions</strong> collected from the trained policy — the dataset used for sparse learning.
 </div>
+
+<!--
+We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient.
+-->
 
 ---
 
@@ -560,6 +590,10 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 
 </div>
 
+<!--
+Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. Degree-4 is required — the double pendulum's cross-coupling nonlinearities can't be captured at degree-2. That gives 210 library terms; STLSQ selects eight. Distillation succeeds — at σ=0 it runs 1,000 steps. But at deployment noise it falls apart. At σ=0.1 we get about 200 steps. At σ=0.3, roughly 20. The training data is near-equilibrium only. Off-distribution states produce small action errors, and those errors compound — every bad step puts us further from the training hull, making the next step worse.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
@@ -607,6 +641,9 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 
 </div>
 
+<!--
+The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. Three rounds, four times the data — 50k to 200k pairs. STLSQ re-fit recovers cross-coupling terms that were incorrectly pruned before. Result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions. There is a ceiling though — R²≈0.97 — because a polynomial can't exactly represent the Tanh activations in the NN. To break through it, the expert itself needs to be polynomial. A polynomial actor achieves R²=0.999 with a degree-2 library — 44 terms, STLSQ retains 22 — and runs 1,000 steps at all noise levels.
+-->
 
 ---
 
@@ -632,6 +669,10 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 </div>
 
 </div>
+
+<!--
+On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate in both the model and the real system — so there are no model errors to exploit.
+-->
 
 ---
 
@@ -679,6 +720,10 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 </div>
 </div>
 
+<!--
+Here are the results. The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
@@ -702,6 +747,9 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
   * Inherits baseline training data — no additional agent training, one-shot regression from oracle queries.
 </div>
 
+<!--
+[Patrick]: "Here's the full picture. The baseline NN is the ceiling — perfect performance, but opaque and data-hungry. Behavioral cloning gives us an interpretable 8-term polynomial, essentially for free — but it's fragile at deployment noise. Augmenting the data recovers most of that robustness, 50 to 90% success, still at no additional simulator cost. The polynomial actor breaks through the Tanh ceiling and hits 100% — but it required a million simulator interactions, more than the baseline itself." [Andrew]: "On the dynamics side: we tried PPO inside the SINDy surrogate — cheap data, but the policy exploited the model and averaged 24 steps in MuJoCo. Switching to LQR from the linearized model fixed the transfer problem entirely — 100% success at 15,000 real-sim steps. That's 27 times more data-efficient than the baseline. Phase 3 would close the loop: interpretable dynamics and interpretable policy, end to end.
+-->
 
 ---
 
@@ -717,6 +765,10 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 <br>
 
 Combine the interpretable **dynamics** (ROM) with the interpretable **policy** (sparse dictionary)
+
+<!--
+Phase 3 is the stretch goal: combine the interpretable dynamics model from the ROM track with the sparse polynomial policy from the distillation track — a fully interpretable closed loop, end to end.
+-->
 
 ---
 
@@ -738,6 +790,10 @@ Combine the interpretable **dynamics** (ROM) with the interpretable **policy** (
 
 <div class="gold-box" style="font-size:0.82em; margin-top:0.5em;"><strong>Goal:</strong> reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</div>
 
+<!--
+One more question before we close. Everything we've shown assumed you start near the upright equilibrium. But what about starting all the way down — pendulum hanging, zero energy? That's a fundamentally harder problem. You have to pump energy into the system, swing the poles up through a chaotic trajectory, then hand off to a stabilizer at just the right moment. A neural network hybrid — swing-up PPO into stabilizer PPO — can do it: 304 steps, 15 seconds, success. That's the NN baseline. The goal is to do the same thing with SINDy-RL: an interpretable swing-up controller handing off to the interpretable LQR stabilizer we've already built. That's the next step.
+-->
+
 ---
 
 <!-- ─────────────────────────────────────────────────
@@ -756,3 +812,7 @@ Combine the interpretable **dynamics** (ROM) with the interpretable **policy** (
 **Patrick Smith &nbsp;·&nbsp; Andrew Falcone**
 
 ME 595 &nbsp;·&nbsp; University of Washington &nbsp;·&nbsp; Spring 2026
+
+<!--
+Interpretable control for unstable systems. It works — and the central challenge turned out not to be the math, but the data: you can't learn the dynamics you need without the controller you don't yet have.
+-->
