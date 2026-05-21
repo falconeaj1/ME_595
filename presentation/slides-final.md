@@ -382,11 +382,11 @@ $$u(x) = \underbrace{-2.4\,\theta_1}_{\text{balance}}
 <br>
 
 <div class="gold-box">
-8 terms &nbsp;·&nbsp; every coefficient has a physical interpretation &nbsp;·&nbsp; fits on a napkin
+~200 terms &nbsp;·&nbsp; 47× fewer parameters than the NN &nbsp;·&nbsp; most coefficients have physical interpretation
 </div>
 
 <!--
-Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a few terms, you can prove its stability bounds, audit every decision, and flash it onto embedded chips. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a sparse governing equation where every coefficient is physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.
+Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a polynomial equation, you can reason about every term, prove stability bounds, audit every decision, and flash it onto embedded hardware. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a polynomial governing equation where every coefficient is physically meaningful. Our result: 206 polynomial terms versus 9,731 neural network parameters — 47 times fewer, and fully interpretable. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.
 -->
 
 ---
@@ -453,6 +453,7 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
 </div>
 </div>
 
+<!--
 <div class="box" style="margin-top:0.5em; text-align:center; font-size:0.8em;">
   <span style="color:#888;">Lineage: &nbsp;</span>
   LASSO <span style="color:var(--uw-gold-dark);">'96</span>
@@ -462,6 +463,7 @@ $$\Theta = \bigl[\;1 \;\big|\; x \;\big|\; \theta_1,\,\theta_2 \;\big|\; x^2,\,x
   &nbsp;→&nbsp; <strong>SINDy-RL <span style="color:var(--uw-gold-dark);">'24</span></strong>
   &nbsp;&nbsp;|&nbsp;&nbsp; Koopman as the competing paradigm
 </div>
+-->
 
 <!--
 SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.
@@ -474,12 +476,14 @@ SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in
   Both — 0:35
 ───────────────────────────────────────────────── -->
 
-# Two objectives — one interpretable controller
+# Two objectives
+
+<br>
 
 <img src="objectives_diagram.png" style="display:block; margin:1.2em auto 0; width:1060px;" alt="chicken-egg diagram">
 
 <!--
-[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller.
+[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a polynomial controller — 206 terms versus 9,731 NN parameters, 47 times smaller and fully interpretable, deployable on embedded hardware.
 -->
 
 ---
@@ -493,15 +497,14 @@ SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in
 
 You can't train near equilibrium without reaching it — and you can't reach it without a controller.
 
-![chicken-egg diagram w:380](chicken_egg_diagram.png)
+![chicken-egg diagram w:750](chicken_egg_diagram.png)
+
+<br>
 
 <div class="gold-box" style="font-size:0.83em;">
   Solution: co-train the controller and surrogate in an iterative active-learning loop.
 </div>
 
-SINDy - open loop dynamics
-SINDYc - co-training, bootstrap, and incrementally get better
- 
 
 <!--
 However, we hit a wall! Since the inverted pendulum is inherently unstable, using SINDy (open loop dynamics), we could not gate data near equilibrium. Instead, we had to train SINDy with conrol (SINDyC). We start by bootstrapping, and over multiple iterations incrementally improve the controller which allows us to better explore the dynamics near equilibirum.
@@ -564,7 +567,7 @@ We started by defining the baseline. We trained a full-order PPO agent with unli
 
 $$\min_{\Xi} \;\bigl\|\Theta(X)\,\Xi - U^*\bigr\|_2 \;+\; \lambda\|\Xi\|_1$$
 
-Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
+Degree-4 library: 210 terms → STLSQ retains **206 terms** (vs 9,731 NN params: **47× smaller**)
 
 **But the policy fails in deployment.**
 
@@ -597,7 +600,7 @@ Degree-4 library: 210 terms → STLSQ selects **8 terms** ✓
 </div>
 
 <!--
-Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, we ended up with a degree-4 polynomial to capter the cross-coupling nonlinearities, wich is over 200 possible terms that the regression retained only a handful.
+Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, a degree-4 polynomial captures the cross-coupling nonlinearities — 210 possible terms, of which STLSQ retained 206. That's not sparse in the traditional SINDy sense, but it's still 47 times fewer parameters than the 9,731-parameter NN, and every term has a physical interpretation.
 Distilling the NN expert into a sparse policy dictionary succeeded, but as the plot shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.
 -->
 
@@ -660,18 +663,18 @@ The fix suggested in the Zolman paper came from a simple insight: the NN policy 
 
 # ROM surrogate — SINDy dynamics + LQR control
 
-![sindy-loop w:620](sindy_loop_diagram.png)
+![sindy-loop w:900](sindy_loop_diagram.png)
 
-<div class="cols" style="align-items:start; margin-top:0.7em; gap:1em;">
+<div class="cols" style="align-items:start; margin-top:0.5em; gap:0.9em;">
 
-<div class="box" style="font-size:0.83em;">
-  <strong>PPO Policy learned on SINDy fails in deployment</strong><br><br>
-  PPO found a policy that scored well <em>inside the polynomial</em> — by exploiting its approximation errors. Those actions don't generalize to the real system: <strong>24</strong> steps average in MuJoCo.
+<div class="box" style="font-size:0.72em; padding:0.4em 0.9em;">
+  <strong>PPO on SINDy fails to transfer</strong><br>
+  Exploits polynomial approximation errors — actions that score well in the model don't generalize: <strong>24 steps</strong> average in MuJoCo.
 </div>
 
-<div class="gold-box" style="font-size:0.83em;">
-  <strong>Why LQR transfers</strong><br><br>
-  LQR only uses the <em>Jacobian at the upright fixed point</em>. Near equilibrium, that linearization is accurate in both the polynomial model and the real system — so there are no model errors to exploit.
+<div class="gold-box" style="font-size:0.72em; padding:0.4em 0.9em;">
+  <strong>Why LQR transfers</strong><br>
+  Uses only the <em>Jacobian at the upright fixed point</em> — accurate near equilibrium in both model and real system. No approximation errors to exploit.
 </div>
 
 </div>
@@ -741,15 +744,14 @@ Here are the preliminary results. The LQR controller trained on the SINDy transf
 
 # How do they compare?
 
-| Approach | Real-sim steps | Policy type | Mean length | Success | Interpretable | Data Efficiency |
-|---|---|---|---|---|---|---|
+| Approach | Real-sim steps | Policy type | Mean length | Success | Interpretable |
+|---|---|---|---|---|---|
 | **Baseline NN** | 400,000 | NN (9,731 params) | 1,000 | 100% | <span class="cross">✗</span> | - |
-| **Sparse policy (base)** | 400,000* | Polynomial (8 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> | <span class="check">✓</span> |
-| **Sparse policy (augmented)** | 400,000* | Polynomial (8 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> | <span class="check">✓</span> |
-| **Polynomial actor** | 1,000,000 | Polynomial (22 terms) | **1,000** | **100%** | <span class="check">✓</span> | <span class="cross">✗</span> |
-| **SINDy + PPO-in-surrogate** | ~15,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> | <span class="check">✓</span> |
-| **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> | <span class="check">✓</span> |
-| **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> | <span class="check">✓</span> |
+| **Sparse policy (base)** | 400,000* | Polynomial (206 terms) | ~20 @ σ=0.3 | Low | <span class="check">✓</span> |
+| **Sparse policy (augmented)** | 400,000* | Polynomial (206 terms) | ~500–900 | ~50–90% | <span class="check">✓</span> |
+| **SINDy + PPO-in-surrogate** | ~15,000 | PPO (NN) | ~24 | ~0% | <span class="cross">✗</span> |
+| **SINDy-LQR** | **15,000** | LQR from SINDy | **1,000** | **100%** | <span class="check">✓</span> |
+| **Phase 3 (stretch)** | TBD | Polynomial | — | — | <span class="check">✓</span> |
 
 <div style="font-size:0.72em; color:#888; margin-top:0.3em;">
   * Inherits baseline training data — no additional agent training, one-shot regression from oracle queries.
@@ -790,11 +792,17 @@ Phase 3 is the stretch goal: combine the interpretable dynamics model from the R
 
 # Bonus Stretch Goal
 
-### For Fun
+### If time permits
 
-<p style="margin-top:0.5em;"><strong>2</strong> chained PPO policies: swing-up (energy pumping) + stabilizer.</p>
+<br>
 
+<p style="margin-top:0.5em;">Start from the down equilibrium position.</p>
+
+<br>
+
+<!--
 <div class="eq-box" style="font-size:0.75em; margin-top:0.1em; background: white"><strong>NN baseline:</strong> Swing-up PPO → handoff → Stabilizer PPO<br>304 steps &nbsp;·&nbsp; 15.2 s &nbsp;·&nbsp; <strong>SUCCESS</strong></div>
+-->
 
 <div class="gold-box" style="font-size:0.82em; margin-top:0.5em;"><strong>Goal:</strong> reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</div>
 

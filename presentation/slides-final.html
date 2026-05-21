@@ -58,7 +58,7 @@ c100.7 8.3 195.3 44 280 108 55.3 42 101.7 93 139 153l9 14c2.7-4 5.7-8.7 9-14
  28.7-117 45-179 50H-300V214h399897c43.3-7 81-15 113-26 100.7-33 179.7-91 237
 -174 2.7-5 6-9 10-13 .7-1 7.3-1 20-1h17z"/></svg></span></span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">0.2</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9313em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span></span><span style="top:-3.2634em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.0556em;"><span class="mord">˙</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.798em;"><span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.6202em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.313em;"></span><span class="minner">⋯</span></span></span></span></span></p><br />
 <div class="gold-box">
-8 terms &nbsp;·&nbsp; every coefficient has a physical interpretation &nbsp;·&nbsp; fits on a napkin
+~200 terms &nbsp;·&nbsp; 47× fewer parameters than the NN &nbsp;·&nbsp; most coefficients have physical interpretation
 </div>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
@@ -119,31 +119,22 @@ c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z"/></svg></span></span></
 <b>Library degree <em>d</em> is a design choice</b> — it must match the complexity of the system and is not obvious a priori.
 </div>
 </div>
-<div class="box" style="margin-top:0.5em; text-align:center; font-size:0.8em;">
-  <span style="color:#888;">Lineage: &nbsp;</span>
-  LASSO <span style="color:var(--uw-gold-dark);">'96</span>
-  &nbsp;→&nbsp; SINDy <span style="color:var(--uw-gold-dark);">'16</span>
-  &nbsp;→&nbsp; SINDy-C <span style="color:var(--uw-gold-dark);">'18</span>
-  &nbsp;→&nbsp; E-SINDy <span style="color:var(--uw-gold-dark);">'22</span>
-  &nbsp;→&nbsp; <strong>SINDy-RL <span style="color:var(--uw-gold-dark);">'24</span></strong>
-  &nbsp;&nbsp;|&nbsp;&nbsp; Koopman as the competing paradigm
-</div>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-theme="default" lang="en-US" data-marpit-pagination="5" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--theme:default;" data-marpit-pagination-total="15" data-size="16:9">
-<h1 id="two-objectives--one-interpretable-controller">Two objectives — one interpretable controller</h1>
+<h1 id="two-objectives">Two objectives</h1>
+<br />
 <img src="objectives_diagram.png" style="display:block; margin:1.2em auto 0; width:1060px;" alt="chicken-egg diagram" />
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-theme="default" lang="en-US" data-marpit-pagination="6" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--theme:default;" data-marpit-pagination-total="15" data-size="16:9">
 <h1 id="sindyc-is-a-chicken-and-egg-problem">SINDyC is a chicken-and-egg problem</h1>
 <p>You can't train near equilibrium without reaching it — and you can't reach it without a controller.</p>
-<p><img src="chicken_egg_diagram.png" alt="chicken-egg diagram" style="width:380px;" /></p>
+<p><img src="chicken_egg_diagram.png" alt="chicken-egg diagram" style="width:750px;" /></p>
+<br />
 <div class="gold-box" style="font-size:0.83em;">
   Solution: co-train the controller and surrogate in an iterative active-learning loop.
 </div>
-<p>SINDy - open loop dynamics<br />
-SINDYc - co-training, bootstrap, and incrementally get better</p>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-theme="default" lang="en-US" data-marpit-pagination="7" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--theme:default;" data-marpit-pagination-total="15" data-size="16:9">
@@ -184,7 +175,7 @@ c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
 c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
 M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
 c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
-c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.0514em;"><span style="top:-2.3003em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">λ</span><span class="mord">∥Ξ</span><span class="mord"><span class="mord">∥</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p><p>Degree-4 library: 210 terms → STLSQ selects <strong>8 terms</strong> ✓</p>
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.0514em;"><span style="top:-2.3003em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">λ</span><span class="mord">∥Ξ</span><span class="mord"><span class="mord">∥</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p><p>Degree-4 library: 210 terms → STLSQ retains <strong>206 terms</strong> (vs 9,731 NN params: <strong>47× smaller</strong>)</p>
 <p><strong>But the policy fails in deployment.</strong></p>
 <div style="font-size:0.75em; color:#888; margin-top:0.2em; text-align:center;">
   At noise σ = 0.3 : <strong>1000 steps → ~20 steps</strong>
@@ -270,15 +261,15 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-theme="default" lang="en-US" data-marpit-pagination="10" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--theme:default;" data-marpit-pagination-total="15" data-size="16:9">
 <h1 id="rom-surrogate--sindy-dynamics--lqr-control">ROM surrogate — SINDy dynamics + LQR control</h1>
-<p><img src="sindy_loop_diagram.png" alt="sindy-loop" style="width:620px;" /></p>
-<div class="cols" style="align-items:start; margin-top:0.7em; gap:1em;">
-<div class="box" style="font-size:0.83em;">
-  <strong>PPO Policy learned on SINDy fails in deployment</strong><br /><br />
-  PPO found a policy that scored well <em>inside the polynomial</em> — by exploiting its approximation errors. Those actions don't generalize to the real system: <strong>24</strong> steps average in MuJoCo.
+<p><img src="sindy_loop_diagram.png" alt="sindy-loop" style="width:900px;" /></p>
+<div class="cols" style="align-items:start; margin-top:0.5em; gap:0.9em;">
+<div class="box" style="font-size:0.72em; padding:0.4em 0.9em;">
+  <strong>PPO on SINDy fails to transfer</strong><br />
+  Exploits polynomial approximation errors — actions that score well in the model don't generalize: <strong>24 steps</strong> average in MuJoCo.
 </div>
-<div class="gold-box" style="font-size:0.83em;">
-  <strong>Why LQR transfers</strong><br /><br />
-  LQR only uses the <em>Jacobian at the upright fixed point</em>. Near equilibrium, that linearization is accurate in both the polynomial model and the real system — so there are no model errors to exploit.
+<div class="gold-box" style="font-size:0.72em; padding:0.4em 0.9em;">
+  <strong>Why LQR transfers</strong><br />
+  Uses only the <em>Jacobian at the upright fixed point</em> — accurate near equilibrium in both model and real system. No approximation errors to exploit.
 </div>
 </div>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
@@ -309,7 +300,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 </tr>
 <tr>
 <td>2</td>
-<td>0.085</td>
+<td>0.1844</td>
 <td>15,000</td>
 </tr>
 </tbody>
@@ -370,7 +361,6 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <th>Mean length</th>
 <th>Success</th>
 <th>Interpretable</th>
-<th>Data Efficiency</th>
 </tr>
 </thead>
 <tbody>
@@ -381,34 +371,22 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>1,000</td>
 <td>100%</td>
 <td><span class="cross">✗</span></td>
-<td>-</td>
 </tr>
 <tr>
 <td><strong>Sparse policy (base)</strong></td>
 <td>400,000*</td>
-<td>Polynomial (8 terms)</td>
+<td>Polynomial (206 terms)</td>
 <td>~20 @ σ=0.3</td>
 <td>Low</td>
-<td><span class="check">✓</span></td>
 <td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>Sparse policy (augmented)</strong></td>
 <td>400,000*</td>
-<td>Polynomial (8 terms)</td>
+<td>Polynomial (206 terms)</td>
 <td>~500–900</td>
 <td>~50–90%</td>
 <td><span class="check">✓</span></td>
-<td><span class="check">✓</span></td>
-</tr>
-<tr>
-<td><strong>Polynomial actor</strong></td>
-<td>1,000,000</td>
-<td>Polynomial (22 terms)</td>
-<td><strong>1,000</strong></td>
-<td><strong>100%</strong></td>
-<td><span class="check">✓</span></td>
-<td><span class="cross">✗</span></td>
 </tr>
 <tr>
 <td><strong>SINDy + PPO-in-surrogate</strong></td>
@@ -417,7 +395,6 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>~24</td>
 <td>~0%</td>
 <td><span class="cross">✗</span></td>
-<td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>SINDy-LQR</strong></td>
@@ -426,7 +403,6 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td><strong>1,000</strong></td>
 <td><strong>100%</strong></td>
 <td><span class="check">✓</span></td>
-<td><span class="check">✓</span></td>
 </tr>
 <tr>
 <td><strong>Phase 3 (stretch)</strong></td>
@@ -434,7 +410,6 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 <td>Polynomial</td>
 <td>—</td>
 <td>—</td>
-<td><span class="check">✓</span></td>
 <td><span class="check">✓</span></td>
 </tr>
 </tbody>
@@ -453,9 +428,10 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-background-color="#F0EDF7" data-theme="default" lang="en-US" data-marpit-pagination="14" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--background-color:#F0EDF7;--theme:default;background-color:#F0EDF7;background-image:none;--marpit-advanced-background-split:48%;" data-marpit-pagination-total="15" data-size="16:9" data-marpit-advanced-background="background" data-marpit-advanced-background-split="right"><div data-marpit-advanced-background-container="true" data-marpit-advanced-background-direction="horizontal"><figure style="background-image:url(&quot;swing_up_animation_cropped.gif&quot;);"></figure></div></section></foreignObject><foreignObject width="52%" height="720"><section id="14" data-paginate="true" data-footer="ME 595 · University of Washington · Spring 2026" data-background-color="#F0EDF7" data-theme="default" lang="en-US" data-marpit-pagination="14" style="--paginate:true;--footer:ME 595 · University of Washington · Spring 2026;--background-color:#F0EDF7;--theme:default;background-color:#F0EDF7;background-image:none;--marpit-advanced-background-split:48%;" data-marpit-pagination-total="15" data-size="16:9" data-marpit-advanced-background="content" data-marpit-advanced-background-split="right">
 <h1 id="bonus-stretch-goal">Bonus Stretch Goal</h1>
-<h3 id="for-fun">For Fun</h3>
-<p style="margin-top:0.5em;"><strong>2</strong> chained PPO policies: swing-up (energy pumping) + stabilizer.</p>
-<div class="eq-box" style="font-size:0.75em; margin-top:0.1em; background: white"><strong>NN baseline:</strong> Swing-up PPO → handoff → Stabilizer PPO<br />304 steps &nbsp;·&nbsp; 15.2 s &nbsp;·&nbsp; <strong>SUCCESS</strong></div>
+<h3 id="if-time-permits">If time permits</h3>
+<br />
+<p style="margin-top:0.5em;">Start from the down equilibrium position.</p>
+<br />
 <div class="gold-box" style="font-size:0.82em; margin-top:0.5em;"><strong>Goal:</strong> reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</div>
 <footer>ME 595 · University of Washington · Spring 2026</footer>
 </section>
@@ -471,7 +447,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
 ─────────────────────────────────────────────────</p><p>Welcome — I'm Patrick Smith, and this is Andrew Falcone. We're going to walk you through our project applying SINDy-RL to the inverted double pendulum. Andrew's been working on the dynamics identification side; I've been working on the control policy side. Let's get into it.</p></div><div class="bespoke-marp-note" data-index="1" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 2 · THE VISION
   Patrick — 1:00
-─────────────────────────────────────────────────</p><p>Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a few terms, you can prove its stability bounds, audit every decision, and flash it onto embedded chips. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a sparse governing equation where every coefficient is physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.</p></div><div class="bespoke-marp-note" data-index="2" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a polynomial equation, you can reason about every term, prove stability bounds, audit every decision, and flash it onto embedded hardware. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a polynomial governing equation where every coefficient is physically meaningful. Our result: 206 polynomial terms versus 9,731 neural network parameters — 47 times fewer, and fully interpretable. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.</p></div><div class="bespoke-marp-note" data-index="2" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 3 · THE SYSTEM
   Andrew — 0:40
 ─────────────────────────────────────────────────</p><p>Our testbed is the inverted double pendulum — two poles balanced upright on a cart. Six-dimensional state: cart position, two joint angles, and their rates. The only input is a horizontal cart force. What makes this hard: the upright equilibrium is unstable. A random policy crashes in about five steps — you never reach the near-equilibrium region. And that's exactly where data-driven dynamics identification is most needed.</p></div><div class="bespoke-marp-note" data-index="3" tabindex="0"><p>─────────────────────────────────────────────────
@@ -479,10 +455,18 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
   Andrew — 0:55
 
 
-─────────────────────────────────────────────────</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>&lt;div class=&quot;box&quot; style=&quot;margin-top:0.5em; text-align:center; font-size:0.8em;&quot;&gt;
+  &lt;span style=&quot;color:#888;&quot;&gt;Lineage: &amp;nbsp;&lt;/span&gt;
+  LASSO &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'96&lt;/span&gt;
+  &amp;nbsp;→&amp;nbsp; SINDy &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'16&lt;/span&gt;
+  &amp;nbsp;→&amp;nbsp; SINDy-C &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'18&lt;/span&gt;
+  &amp;nbsp;→&amp;nbsp; E-SINDy &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'22&lt;/span&gt;
+  &amp;nbsp;→&amp;nbsp; &lt;strong&gt;SINDy-RL &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'24&lt;/span&gt;&lt;/strong&gt;
+  &amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp; Koopman as the competing paradigm
+&lt;/div&gt;</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 5 · OBJECTIVES
   Both — 0:35
-─────────────────────────────────────────────────</p><p>[Andrew]: &quot;We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside.&quot; [Patrick]: &quot;And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a controller you can write on a napkin and deploy on a microcontroller.</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>[Andrew]: &quot;We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside.&quot; [Patrick]: &quot;And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a polynomial controller — 206 terms versus 9,731 NN parameters, 47 times smaller and fully interpretable, deployable on embedded hardware.</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 6 · CHICKEN-AND-EGG
   Both — 0:50
 ─────────────────────────────────────────────────</p><p>However, we hit a wall! Since the inverted pendulum is inherently unstable, using SINDy (open loop dynamics), we could not gate data near equilibrium. Instead, we had to train SINDy with conrol (SINDyC). We start by bootstrapping, and over multiple iterations incrementally improve the controller which allows us to better explore the dynamics near equilibirum.
@@ -493,24 +477,26 @@ We essentially had to redesign the whole approach: co-train the controller and s
 ─────────────────────────────────────────────────</p><p>We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient.</p></div><div class="bespoke-marp-note" data-index="7" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 8 · SPARSE POLICY DISTILLATION
   Patrick — 0:50
-─────────────────────────────────────────────────</p><p>Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, we ended up with a degree-4 polynomial to capter the cross-coupling nonlinearities, wich is over 200 possible terms that the regression retained only a handful.
+─────────────────────────────────────────────────</p><p>Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, a degree-4 polynomial captures the cross-coupling nonlinearities — 210 possible terms, of which STLSQ retained 206. That's not sparse in the traditional SINDy sense, but it's still 47 times fewer parameters than the 9,731-parameter NN, and every term has a physical interpretation.
 Distilling the NN expert into a sparse policy dictionary succeeded, but as the plot shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.</p></div><div class="bespoke-marp-note" data-index="8" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 9 · THE FIX
   Patrick — 0:40
 ─────────────────────────────────────────────────</p><p>The fix suggested in the Zolman paper came from a simple insight: the NN policy has no memory — it's a pure function of state. Since we have an expert that was trained, we can essentially ask it what it would do. So we can query it at any state we want, no simulator rollouts needed. We perturb states by adding Gaussian noise (σ=0.15), query the oracle for the correct action, and add those labeled pairs to the dataset. We chose three rounds resulting in four times the original data. The result: 25 to 45 times more robust at deployment noise, with zero additional simulator interactions.</p></div><div class="bespoke-marp-note" data-index="9" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 10 · ROM SURROGATE — ACTIVE LOOP
   Andrew — 0:50
-─────────────────────────────────────────────────</p><p>On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate in both the model and the real system — so there are no model errors to exploit.</p></div><div class="bespoke-marp-note" data-index="10" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate.</p></div><div class="bespoke-marp-note" data-index="10" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 11 · ROM RESULTS
   Andrew — 0:40
-─────────────────────────────────────────────────</p><p>Here are the results. The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.</p></div><div class="bespoke-marp-note" data-index="11" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>We start the process by bootstrapping random initial states near equilibrium, and use the full MuJoCo environment to train an SINDy model to predict next state based on current state and action. We then use this SINDyC model to train an LQR controller that we then deploy on the MuJoCo envirnoment, which allows us to gather more data near equilibirum. We repreat the process to reduce RMSE error so that our SINDy model can be a good enough surrogate to train an RL &quot;expert&quot;.
+
+Here are the preliminary results. The LQR controller trained on the SINDy transfersOn the fixed vaidation set, the SINDy model shows low Root Mean Square Error and a Linear Quadratic Regulator is able to successfully transfer from the learned SINDy reduced order model The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.</p></div><div class="bespoke-marp-note" data-index="11" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 12 · COMPARISON
   Both — 0:40
 ─────────────────────────────────────────────────</p><p>[Patrick]: &quot;Here's the full picture. The baseline NN is the ceiling — perfect performance, but opaque and data-hungry. Behavioral cloning gives us an interpretable 8-term polynomial, essentially for free — but it's fragile at deployment noise. Augmenting the data recovers most of that robustness, 50 to 90% success, still at no additional simulator cost. The polynomial actor breaks through the Tanh ceiling and hits 100% — but it required a million simulator interactions, more than the baseline itself.&quot; [Andrew]: &quot;On the dynamics side: we tried PPO inside the SINDy surrogate — cheap data, but the policy exploited the model and averaged 24 steps in MuJoCo. Switching to LQR from the linearized model fixed the transfer problem entirely — 100% success at 15,000 real-sim steps. That's 27 times more data-efficient than the baseline. Phase 3 would close the loop: interpretable dynamics and interpretable policy, end to end.</p></div><div class="bespoke-marp-note" data-index="12" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 13 · STRETCH GOAL
 ─────────────────────────────────────────────────</p><p>Phase 3 is the stretch goal: combine the interpretable dynamics model from the ROM track with the sparse polynomial policy from the distillation track — a fully interpretable closed loop, end to end.</p></div><div class="bespoke-marp-note" data-index="13" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 14 · BONUS
-─────────────────────────────────────────────────</p><p>One more question before we close. Everything we've shown assumed you start near the upright equilibrium. But what about starting all the way down — pendulum hanging, zero energy? That's a fundamentally harder problem. You have to pump energy into the system, swing the poles up through a chaotic trajectory, then hand off to a stabilizer at just the right moment. A neural network hybrid — swing-up PPO into stabilizer PPO — can do it: 304 steps, 15 seconds, success. That's the NN baseline. The goal is to do the same thing with SINDy-RL: an interpretable swing-up controller handing off to the interpretable LQR stabilizer we've already built. That's the next step.</p></div><div class="bespoke-marp-note" data-index="14" tabindex="0"><p>─────────────────────────────────────────────────
+─────────────────────────────────────────────────</p><p>&lt;div class=&quot;eq-box&quot; style=&quot;font-size:0.75em; margin-top:0.1em; background: white&quot;&gt;&lt;strong&gt;NN baseline:&lt;/strong&gt; Swing-up PPO → handoff → Stabilizer PPO&lt;br&gt;304 steps &amp;nbsp;·&amp;nbsp; 15.2 s &amp;nbsp;·&amp;nbsp; &lt;strong&gt;SUCCESS&lt;/strong&gt;&lt;/div&gt;</p><p>One more question before we close. Everything we've shown assumed you start near the upright equilibrium. But what about starting all the way down — pendulum hanging, zero energy? That's a fundamentally harder problem. You have to pump energy into the system, swing the poles up through a chaotic trajectory, then hand off to a stabilizer at just the right moment. A neural network hybrid — swing-up PPO into stabilizer PPO — can do it: 304 steps, 15 seconds, success. That's the NN baseline. The goal is to do the same thing with SINDy-RL: an interpretable swing-up controller handing off to the interpretable LQR stabilizer we've already built. That's the next step.</p></div><div class="bespoke-marp-note" data-index="14" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 15 · CLOSING
   Andrew — 0:15
 ─────────────────────────────────────────────────</p><p>Interpretable control for unstable systems. It works — and the central challenge turned out not to be the math, but the data: you can't learn the dynamics you need without the controller you don't yet have.</p></div><script>/*!! License: https://unpkg.com/@marp-team/marp-cli@4.4.0/lib/bespoke.js.LICENSE.txt */
