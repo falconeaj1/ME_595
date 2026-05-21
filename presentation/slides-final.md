@@ -386,7 +386,7 @@ $$u(x) = \underbrace{-2.4\,\theta_1}_{\text{balance}}
 </div>
 
 <!--
-Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a polynomial equation, you can reason about every term, prove stability bounds, audit every decision, and flash it onto embedded hardware. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a polynomial governing equation where every coefficient is physically meaningful. Our result: 206 polynomial terms versus 9,731 neural network parameters — 47 times fewer, and fully interpretable. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.
+Think about where autonomous control needs to go: a surgical robot that a regulator has to certify before it touches a patient. A delivery drone flying over populated areas with no cloud connection and a microcontroller for a brain. In each of these cases, a ten-thousand-parameter neural network is a dead end — you can't certify what cannot be explained, and you can't run a GPU on a battery-powered UAV. But if the controller is a polynomial equation, you can reason about every term, prove stability bounds, audit every decision, and flash it onto embedded hardware. That's what we're trying to demonstrate — the performance of deep RL, in a form that can actually be deployed and trusted. And this is the goal: a polynomial governing equation where every coefficient is physically meaningful. For model-based control or faster RL training, that sparsity is critical — instead of running thousands of rollouts in an expensive full simulator, you run them in this equation. That's what SINDy gives us.
 -->
 
 ---
@@ -483,7 +483,7 @@ SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in
 <img src="objectives_diagram.png" style="display:block; margin:1.2em auto 0; width:1060px;" alt="chicken-egg diagram">
 
 <!--
-[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial. The result is a polynomial controller — 206 terms versus 9,731 NN parameters, 47 times smaller and fully interpretable, deployable on embedded hardware.
+[Andrew]: "We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside." [Patrick]: "And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial.
 -->
 
 ---
@@ -545,7 +545,7 @@ A standard PPO agent trained with **full simulator access**.
 </div>
 
 <!--
-We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient.
+We started by defining the baseline. We trained a full-order Proximal Policy Optimization agent with unlimited simulator access. It achieved 100% success rate, with mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter Multi-Layer Perceptron neural net. That's what we're trying to match with something interpretable and much more data-efficient.
 -->
 
 ---
@@ -590,8 +590,8 @@ $$\min_{\Xi} \;\bigl\|\Theta(X)\,\Xi - U^*\bigr\|_2 \;+\; \lambda\|\Xi\|_1$$
 </div>
 
 <!--
-Since we already have a trained expert from the PPO baseline, we get the sparse policy for free, no retraining needed. It's a one-shot regression: collect 50,000 transitions from the oracle, build the polynomial library, solve for the sparse coefficients. In our case, a degree-4 polynomial captures the cross-coupling nonlinearities — 210 possible terms, of which STLSQ retained 206. That's not sparse in the traditional SINDy sense, but it's still 47 times fewer parameters than the 9,731-parameter NN, and every term has a physical interpretation.
-Distilling the NN expert into a sparse policy dictionary succeeded, but as the plot shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.
+Since we already have a trained expert from the baseline run, we get the sparse policy for free, no retraining needed. It's a one-shot regression: we collected 50,000 transitions from the expert, build the polynomial library, solve for the sparse coefficients. In our case, a degree-4 polynomial captures the cross-coupling nonlinearities — 210 possible terms, of which regressor (STLSQ) retained 206. That may not be sparse in the traditional SINDy sense, but it's still 47 times fewer parameters than the nearly 10k-parameter NN, and every most have a physical interpretation.
+Distilling the NN expert into a sparse policy dictionary succeeded, but as the data shows, is vulnerable to noise. This is the compounding error problem common to Behavior Cloning approaches mentioned in the Zolman paper.
 -->
 
 ---
@@ -672,9 +672,10 @@ The fix suggested in the Zolman paper came from a simple insight: the NN policy 
 </div>
 
 <!--
-On the dynamics side, we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. The loop is: bootstrap with near-upright probe data, fit SINDy, linearize the learned model, deploy LQR in MuJoCo, collect better near-equilibrium data, and repeat.
-
-The key design choice is LQR instead of PPO inside the surrogate. PPO did converge in the polynomial model, but it averaged about 24 steps when deployed in real MuJoCo. That means the policy was exploiting approximation errors in the learned surrogate. LQR is less exploitable because it only uses the local Jacobian at the upright fixed point. Near equilibrium, that local linearization is accurate enough in both the SINDy model and the real system.
+We learn sparse polynomial dynamics with SINDy near the upright equilibrium, linearize the learned model, and compute an LQR controller from that local approximation.
+The workflow is iterative: collect near-equilibrium trajectories in MuJoCo, fit SINDy, derive an LQR gain, deploy the controller, gather improved data, and repeat.
+As an initial controller, LQR transferred reliably because it depends only on the local Jacobian near the upright fixed point, where the learned dynamics are most accurate.
+We also explored PPO training directly inside the surrogate model. While those policies performed well inside the learned dynamics, transferring robustly back to MuJoCo remains an active area of investigation and ongoing work in the project.
 -->
 
 ---
@@ -724,9 +725,9 @@ The key design choice is LQR instead of PPO inside the surrogate. PPO did conver
 </div>
 
 <!--
-This slide is the payoff for the ROM track. The fixed near-upright validation set shows the learned one-step dynamics staying in the same low-error range as we add targeted data: 0.188 at bootstrap, 0.182 after the first iteration, and 0.184 after the second. The exact point is not monotonic RMSE; it is that the local dynamics are accurate enough near the upright fixed point.
-
-The LQR transfer result is the important part. At every iteration, the controller computed from the SINDy linearization reaches the 1,000-step time limit in real MuJoCo, with mean return essentially identical to the full-order neural-network baseline. The baseline NN required 400,000 real simulator steps. SINDy-LQR uses 15,000, which is about 27 times fewer real simulator interactions.
+The main result so far is that relatively small amounts of targeted near-equilibrium data were sufficient to learn a locally accurate dynamics model.
+Controllers derived from the SINDy linearization consistently stabilized the real MuJoCo system and achieved performance comparable to the neural-network baseline, while requiring substantially fewer real simulator interactions.
+Current results are strongest in the local stabilization regime using SINDy-LQR. Extending this to reinforcement learning policies trained directly inside the surrogate remains ongoing work, particularly for improving robustness and transfer back to the full MuJoCo environment.
 -->
 
 ---
@@ -752,7 +753,11 @@ The LQR transfer result is the important part. At every iteration, the controlle
 </div>
 
 <!--
-[Patrick]: "Here's the full picture. The baseline NN is the ceiling — perfect performance, but opaque and data-hungry. Behavioral cloning gives us an interpretable 8-term polynomial, essentially for free — but it's fragile at deployment noise. Augmenting the data recovers most of that robustness, 50 to 90% success, still at no additional simulator cost. The polynomial actor breaks through the Tanh ceiling and hits 100% — but it required a million simulator interactions, more than the baseline itself." [Andrew]: "On the dynamics side: we tried PPO inside the SINDy surrogate — cheap data, but the policy exploited the model and averaged 24 steps in MuJoCo. Switching to LQR from the linearized model fixed the transfer problem entirely — 100% success at 15,000 real-sim steps. That's 27 times more data-efficient than the baseline. Phase 3 would close the loop: interpretable dynamics and interpretable policy, end to end.
+[Patrick]: "Here's the full picture. The baseline NN is the ceiling — perfect performance, but opaque and data-hungry. Behavioral cloning gives us an interpretable sparse polynomial, essentially for free — but it's fragile at deployment noise. Augmenting the data recovers most of that robustness, still at no additional simulator cost."
+
+[Andrew]: "On the dynamics side, we also explored training PPO directly inside the SINDy surrogate. That approach was extremely data-efficient, but transferring the learned policy robustly back to real MuJoCo remains an ongoing challenge — the policy could exploit inaccuracies in the learned model and averaged about 24 steps after transfer.
+As a more stable first step, we switched to LQR computed from the linearized SINDy dynamics near the upright equilibrium. That controller successfully stabilized the real environment using only about 5,000 real simulator interactions. We continued the active-learning loop for two additional refinement rounds — about 15,000 total transitions — but the controller was already transferring reliably after the initial bootstrap stage.
+Overall, the SINDy-LQR approach achieved stable transfer with roughly 27× fewer real simulator interactions than the baseline neural-network policy."
 -->
 
 ---
@@ -801,7 +806,7 @@ Phase 3 is the stretch goal: combine the interpretable dynamics model from the R
 <div class="gold-box" style="font-size:0.82em; margin-top:0.5em;"><strong>Goal:</strong> reproduce this with SINDy-RL — interpretable swing-up + interpretable stabilizer, end to end.</div>
 
 <!--
-One more question before we close. Everything we've shown assumed you start near the upright equilibrium. But what about starting all the way down — pendulum hanging, zero energy? That's a fundamentally harder problem. You have to pump energy into the system, swing the poles up through a chaotic trajectory, then hand off to a stabilizer at just the right moment. A neural network hybrid — swing-up PPO into stabilizer PPO — can do it: 304 steps, 15 seconds, success. That's the NN baseline. The goal is to do the same thing with SINDy-RL: an interpretable swing-up controller handing off to the interpretable LQR stabilizer we've already built. That's the next step.
+If time permits, we want to apply this technique to stabilizing the inverted double pendulum when starting from the down equilibrium posittion.
 -->
 
 ---
@@ -816,8 +821,11 @@ One more question before we close. Everything we've shown assumed you start near
 
 <div class="uw-w">W</div>
 
-# Interpretable control for unstable systems.
-# It works.
+# Interpretable control for unstable systems
+
+###  Thank you
+
+<br>
 
 **Patrick Smith &nbsp;·&nbsp; Andrew Falcone**
 
@@ -825,4 +833,7 @@ ME 595 &nbsp;·&nbsp; University of Washington &nbsp;·&nbsp; Spring 2026
 
 <!--
 Interpretable control for unstable systems. It works — and the central challenge turned out not to be the math, but the data: you can't learn the dynamics you need without the controller you don't yet have.
+
+Thank you
+
 -->
