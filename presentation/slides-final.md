@@ -521,6 +521,8 @@ We essentially had to redesign the whole approach: co-train the controller and s
 
 # Baseline — the performance ceiling
 
+<br>
+
 A standard PPO agent trained with **full simulator access**.
 
 <div class="cols-3" style="margin-top:1em; text-align:center;">
@@ -542,10 +544,6 @@ A standard PPO agent trained with **full simulator access**.
 
 </div>
 
-<div class="gold-box" style="margin-top:0.9em; font-size:0.85em;">
-  <strong>50,000 transitions</strong> collected from the trained policy — the dataset used for sparse learning.
-</div>
-
 <!--
 We started by defining the baseline. We trained a full-order PPO agent with unlimited simulator access: 100% success rate, mean reward 9,359 — essentially perfect. It took 400,000 simulator interactions and produced a 9,731-parameter MLP. That's what we're trying to match with something interpretable and much more data-efficient.
 -->
@@ -563,23 +561,20 @@ We started by defining the baseline. We trained a full-order PPO agent with unli
 
 <div>
 
-**Behavioral cloning** on the oracle dataset:
+**Behavioral cloning** on 50,000 oracle transitions:
 
 $$\min_{\Xi} \;\bigl\|\Theta(X)\,\Xi - U^*\bigr\|_2 \;+\; \lambda\|\Xi\|_1$$
 
-Degree-4 library: 210 terms → STLSQ retains **206 terms** (vs 9,731 NN params: **47× smaller**)
+210-term degree-4 library → STLSQ retains **206 terms** · **47× fewer params** than NN
 
-**But the policy fails in deployment.**
-
-<div style="font-size:0.75em; color:#888; margin-top:0.2em; text-align:center;">
-  At noise σ = 0.3 : <strong>1000 steps → ~20 steps</strong>
-</div>
 
 </div>
 
 <div>
 
-![compounding error w:400](compounding_error.png)
+**But the policy fails under noise:**
+
+
 
 | Noise σ | Mean episode length |
 |---|---|
@@ -587,16 +582,11 @@ Degree-4 library: 210 terms → STLSQ retains **206 terms** (vs 9,731 NN params:
 | 0.1 | ~200 steps |
 | 0.3 | ~20 steps ✗ |
 
-</div>
-</div>
-
-<div class="gold-box" style="font-size:0.83em;">
-  Off-distribution states produce small action errors → errors compound → catastrophic failure.
+<div class="gold-box" style="font-size:0.8em; margin-top:0.4em;">
+  Off-distribution states produce small errors → errors compound → catastrophic failure.
 </div>
 
-
 </div>
-
 </div>
 
 <!--
@@ -613,7 +603,7 @@ Distilling the NN expert into a sparse policy dictionary succeeded, but as the p
 
 # The fix: query the oracle, for free
 
-<div class="cols" style="align-items:start;">
+<div class="cols" style="align-items:start; grid-template-columns: 3fr 2fr;">
 
 <div>
 
@@ -621,9 +611,13 @@ Distilling the NN expert into a sparse policy dictionary succeeded, but as the p
 
 For each of 3 rounds:
 
-1. Perturb states: $\tilde x = x + \varepsilon,\;\;\varepsilon \sim \mathcal{N}(0,\,\sigma^2)$
+<div style="font-size:0.85em;">
+
+1. Perturb states: $\tilde{x} \sim \mathcal{N}(x,\, \sigma^2)$
 2. Query oracle: $\tilde u = \pi_\text{NN}(\tilde x)$
 3. Append $(\tilde x,\tilde u)$ to dataset
+
+</div>
 
 Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling terms.
 
@@ -637,8 +631,6 @@ Dataset grows **4×** (50k → 200k pairs). STLSQ re-fit recovers cross-coupling
 | Augmented | ~1000 steps ✓ | ~500–900 steps |
 
 <br>
-
-<div style="font-size:0.75em; color:#888; margin-top:0.4em;">Baseline NN: 1000 steps at all noise levels</div>
 
 <br>
 
