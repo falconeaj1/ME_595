@@ -462,7 +462,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
   Both — 0:35
 ─────────────────────────────────────────────────</p><p>[Andrew]: &quot;We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside.&quot; [Patrick]: &quot;And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial.</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 6 · CHICKEN-AND-EGG
-  Both — 0:50
+  Andrew — 0:50
 ─────────────────────────────────────────────────</p><p>However, we hit a wall! Since the inverted pendulum is inherently unstable, using SINDy (open loop dynamics), we could not gate data near equilibrium. Instead, we had to train SINDy with conrol (SINDyC). We start by bootstrapping, and over multiple iterations incrementally improve the controller which allows us to better explore the dynamics near equilibirum.
 
 We essentially had to redesign the whole approach: co-train the controller and surrogate in an iterative active-learning loop.</p></div><div class="bespoke-marp-note" data-index="6" tabindex="0"><p>─────────────────────────────────────────────────
