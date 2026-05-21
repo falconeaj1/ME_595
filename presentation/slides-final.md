@@ -672,7 +672,9 @@ The fix suggested in the Zolman paper came from a simple insight: the NN policy 
 </div>
 
 <!--
-On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. We bootstrap with near-upright probe data, fit SINDy, linearize, deploy LQR in MuJoCo, collect near-equilibrium data, and repeat. But we didn't start with LQR — we first tried training PPO directly inside the polynomial surrogate. PPO converged, scoring high reward in the model. But when we deployed it in MuJoCo, it averaged 24 steps. The policy had learned to exploit the polynomial's approximation errors — actions that look optimal in the equation don't generalize to the real physics. LQR sidesteps this entirely: it only needs the Jacobian at the upright fixed point. Near equilibrium, that linearization is accurate.
+On the dynamics side, we learn sparse polynomial dynamics with SINDy, linearize around the upright equilibrium, and compute an LQR gain. The loop is: bootstrap with near-upright probe data, fit SINDy, linearize the learned model, deploy LQR in MuJoCo, collect better near-equilibrium data, and repeat.
+
+The key design choice is LQR instead of PPO inside the surrogate. PPO did converge in the polynomial model, but it averaged about 24 steps when deployed in real MuJoCo. That means the policy was exploiting approximation errors in the learned surrogate. LQR is less exploitable because it only uses the local Jacobian at the upright fixed point. Near equilibrium, that local linearization is accurate enough in both the SINDy model and the real system.
 -->
 
 ---
@@ -694,7 +696,7 @@ On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize 
 |---|---|---|
 | 0 (bootstrap) | 0.188 | 5,000 |
 | 1 | 0.182  | 10,000 |
-| 2 | 0.1844 | 15,000 |
+| 2 | 0.184 | 15,000 |
 
 <div class="gold-box" style="margin-top:0.5em; font-size:0.83em;">
   Baseline NN: <strong>400,000</strong> real-sim steps.<br>
@@ -722,9 +724,9 @@ On the dynamics side: we learn sparse polynomial dynamics with SINDy, linearize 
 </div>
 
 <!--
-We start the process by bootstrapping random initial states near equilibrium, and use the full MuJoCo environment to train an SINDy model to predict next state based on current state and action. We then use this SINDyC model to train an LQR controller that we then deploy on the MuJoCo envirnoment, which allows us to gather more data near equilibirum. We repreat the process to reduce RMSE error so that our SINDy model can be a good enough surrogate to train an RL "expert".
+This slide is the payoff for the ROM track. The fixed near-upright validation set shows the learned one-step dynamics staying in the same low-error range as we add targeted data: 0.188 at bootstrap, 0.182 after the first iteration, and 0.184 after the second. The exact point is not monotonic RMSE; it is that the local dynamics are accurate enough near the upright fixed point.
 
-Here are the preliminary results. The LQR controller trained on the SINDy transfersOn the fixed vaidation set, the SINDy model shows low Root Mean Square Error and a Linear Quadratic Regulator is able to successfully transfer from the learned SINDy reduced order model The iterative framework converges — each round reduces RMSE on a fixed validation set: 0.188 at bootstrap, 0.182 after the first round, 0.085 after the second. And the LQR controller? 100% success rate at every iteration — 1,000 steps, mean return 9,359 — matching the full-order baseline exactly. Total real simulator interactions: 15,000. The baseline required 400,000. That's 27 times more data-efficient.
+The LQR transfer result is the important part. At every iteration, the controller computed from the SINDy linearization reaches the 1,000-step time limit in real MuJoCo, with mean return essentially identical to the full-order neural-network baseline. The baseline NN required 400,000 real simulator steps. SINDy-LQR uses 15,000, which is about 27 times fewer real simulator interactions.
 -->
 
 ---

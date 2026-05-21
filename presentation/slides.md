@@ -267,6 +267,87 @@ tr:nth-child(even) td { background: var(--uw-light); }
 .cross  { color: #c62828; font-weight: 700; }
 .partial{ color: #e65100; font-weight: 700; }
 
+/* Compact one-off layout for the dense ROM results slide */
+section.rom-results {
+  font-size: 23px;
+  line-height: 1.32;
+  padding: 42px 64px;
+}
+
+section.rom-results h1 {
+  font-size: 1.42em;
+  margin-bottom: 0.35em;
+}
+
+section.rom-results .cols {
+  gap: 1em;
+}
+
+section.rom-results table {
+  font-size: 0.72em;
+  margin-top: 0.25em;
+}
+
+section.rom-results th {
+  padding: 5px 10px;
+}
+
+section.rom-results td {
+  padding: 5px 10px;
+}
+
+section.rom-results .box,
+section.rom-results .gold-box {
+  padding: 0.45em 0.8em;
+}
+
+/* Compact one-off layout for the ROM surrogate loop slide */
+section.rom-train {
+  font-size: 23px;
+  line-height: 1.3;
+  padding: 42px 64px;
+}
+
+section.rom-train h1 {
+  font-size: 1.36em;
+  margin-bottom: 0.32em;
+}
+
+section.rom-train .flow {
+  gap: 0.34em;
+  margin: 0.75em 0 0.8em;
+  font-size: 0.68em;
+}
+
+section.rom-train .fn {
+  min-width: 82px;
+  padding: 0.32em 0.58em;
+}
+
+section.rom-train .fa {
+  font-size: 1.05em;
+}
+
+section.rom-train .loop-node {
+  min-width: 30px;
+  width: 42px;
+  flex: 0 0 42px;
+}
+
+section.rom-train table {
+  font-size: 0.66em;
+  margin-top: 0.35em;
+  width: 68%;
+}
+
+section.rom-train th {
+  padding: 5px 10px;
+}
+
+section.rom-train td {
+  padding: 5px 10px;
+}
+
 /* Equation callout */
 .eq-box {
   background: #fff;
@@ -642,7 +723,7 @@ A standard PPO agent trained with **full simulator access**.
 
 # Sparse policy distillation — the compounding error trap
 
-<div class="cols" style="align-items:start;">
+<div class="cols" style="align-items:start; gap:1.0em; font-size:0.72em; line-height:1.25;">
 
 <div>
 
@@ -720,14 +801,13 @@ Dataset grows **4×** (50k → 200k pairs).
 <!-- ─────────────────────────────────────────────────
   SLIDE 14 · TRACK A — ACTIVE LEARNING
 ───────────────────────────────────────────────── -->
+<!-- _class: rom-train -->
 
 # ROM surrogate — train RL inside an interpretable model
 
 **Core idea:** use a SINDy surrogate as the "dream environment" (cf. DreamerV3).
 
-<br>
-
-<div class="flow" style="font-size:0.85em; gap:0.5em;">
+<div class="flow">
   <div class="fn">Bootstrap<br><small>PD + random</small></div>
   <div class="fa">→</div>
   <div class="fn">Fit SINDy<br><small>polynomial dynamics</small></div>
@@ -738,10 +818,8 @@ Dataset grows **4×** (50k → 200k pairs).
   <div class="fa">→</div>
   <div class="fn gold">Collect data<br><small>near equilibrium</small></div>
   <div class="fa">→</div>
-  <div class="fn" style="font-size:1.4em; min-width:30px;">⟳</div>
+  <div class="fn loop-node" style="font-size:1.4em;">⟳</div>
 </div>
-
-<br>
 
 | DreamerV3 concept | This project |
 |---|---|
@@ -755,6 +833,7 @@ Dataset grows **4×** (50k → 200k pairs).
 <!-- ─────────────────────────────────────────────────
   SLIDE 15 · TRACK A — RESULTS
 ───────────────────────────────────────────────── -->
+<!-- _class: rom-results -->
 
 # ROM surrogate — results
 
@@ -762,39 +841,50 @@ Dataset grows **4×** (50k → 200k pairs).
 
 <div>
 
-**Iterative RMSE convergence:**
+**SINDy improves the local model:**
 
 | Iteration | One-step RMSE | Real sim steps |
 |---|---|---|
-| 0 (bootstrap) | — | ~3,000 |
-| 1 | Δ large | +~5,000 |
-| 2 | Δ small | +~5,000 |
+| 0 (bootstrap) | 0.188 | 5,000 |
+| 1 | 0.182 | 10,000 |
+| 2 | 0.184 | 15,000 |
 
-<div style="font-size:0.78em; color:#888; margin-top:0.3em;">
-  Each iteration trains a better policy which collects better data.
+<div style="font-size:0.68em; color:#888; margin-top:0.25em;">
+  Fixed validation probes; lower RMSE means the learned dynamics are more accurate near upright.
 </div>
 
-<div class="gold-box" style="margin-top:0.5em; font-size:0.83em;">
-  Baseline NN required <strong>400,000</strong> real-sim steps.<br>
-  ROM surrogate target: <strong>&lt; 50,000</strong> — 8× more data-efficient.
+<div class="gold-box" style="margin-top:0.4em; font-size:0.76em;">
+  Baseline NN: <strong>400,000</strong> real-sim steps.<br>
+  SINDy-LQR: <strong>15,000</strong> — <strong>27× more data-efficient.</strong>
 </div>
 
 </div>
 
 <div>
 
-**Surrogate environment** — exact reward replica:
+**Why LQR, not PPO, transferred:**
 
-$$r = 10 - \bigl(0.01\,x_\text{tip}^2 + (y_\text{tip}-2)^2\bigr) - v_\text{pen}$$
+<div class="box" style="font-size:0.76em; margin-bottom:0.45em;">
+  Fit sparse dynamics → linearize near upright → solve LQR gain.<br>
+  Deploy with feedback on the <strong>real MuJoCo state</strong> each step.
+</div>
 
-$$y_\text{tip} = L_1\cos\theta_1 + L_2\cos(\theta_1+\theta_2)$$
-
-The SINDy model is **interpretable dynamics**:
-
-$$x_{k+1} = x_k + \Delta t \cdot \Xi^T \Theta(x_k, u_k)$$
+| Controller | Real MuJoCo result | Interpretation |
+|---|---|---|
+| PPO in SINDy surrogate | ~24 steps | exploited model errors |
+| **LQR from SINDy linearization** | **1000 steps** | uses only local dynamics |
 
 </div>
 </div>
+
+<!--
+Reader notes:
+The important story on this slide is the switch from "learn a whole policy inside the surrogate" to "use the surrogate only where it is trustworthy." PPO needs the SINDy model to behave like a reliable recursive simulator for many steps. In our tests, that failed: PPO found actions that looked good in the polynomial model but did not transfer, averaging about 24 steps in real MuJoCo.
+
+LQR has a much narrower requirement. We fit sparse SINDy dynamics, linearize them around the upright equilibrium, and compute a feedback gain from that local A/B model. During deployment, the controller closes the loop on the real MuJoCo state at every step, so it is not rolling out the surrogate open-loop. That is why the controller can reach the 1000-step time limit even though the learned model would not be trusted as a perfect long-horizon simulator.
+
+For the live presentation, emphasize that the result is not "PPO solved the surrogate." The result is "SINDy gives a compact, interpretable local model; LQR turns that local model into a controller that transfers." The headline comparison is 15,000 simulator steps for SINDy-LQR versus 400,000 for the baseline NN, or about 27 times fewer real simulator interactions.
+-->
 
 ---
 
