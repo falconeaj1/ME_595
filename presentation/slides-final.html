@@ -449,7 +449,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
   Andrew — 0:55
 
 
-─────────────────────────────────────────────────</p><p>&lt;div class=&quot;box&quot; style=&quot;margin-top:0.5em; text-align:center; font-size:0.8em;&quot;&gt;
+─────────────────────────────────────────────────</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.</p><p>&lt;div class=&quot;box&quot; style=&quot;margin-top:0.5em; text-align:center; font-size:0.8em;&quot;&gt;
   &lt;span style=&quot;color:#888;&quot;&gt;Lineage: &amp;nbsp;&lt;/span&gt;
   LASSO &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'96&lt;/span&gt;
   &amp;nbsp;→&amp;nbsp; SINDy &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'16&lt;/span&gt;
@@ -457,7 +457,7 @@ c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></
   &amp;nbsp;→&amp;nbsp; E-SINDy &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'22&lt;/span&gt;
   &amp;nbsp;→&amp;nbsp; &lt;strong&gt;SINDy-RL &lt;span style=&quot;color:var(--uw-gold-dark);&quot;&gt;'24&lt;/span&gt;&lt;/strong&gt;
   &amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp; Koopman as the competing paradigm
-&lt;/div&gt;</p><p>SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in a low-dimensional space of basis functions. We construct a polynomial library Θ over the state and control inputs, then use sparse regression — specifically STLSQ — to identify which terms actually drive the dynamics. Most coefficients get driven to exactly zero, leaving only the governing terms. One critical design choice is the polynomial degree — it must be rich enough to capture the system's nonlinearities.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
+&lt;/div&gt;</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>─────────────────────────────────────────────────
   SLIDE 5 · OBJECTIVES
   Both — 0:35
 ─────────────────────────────────────────────────</p><p>[Andrew]: &quot;We have 2 objectives. Objective one: learn a reduced-order model. SINDyC identifies dynamics with control inputs — giving us an explicit, interpretable surrogate we can run RL inside.&quot; [Patrick]: &quot;And, Objective two: distill the NN policy trained in that surrogate down to a sparse polynomial.</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>─────────────────────────────────────────────────
