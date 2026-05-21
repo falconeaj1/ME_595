@@ -490,7 +490,7 @@ SINDy is the core of our dynamics approach. The idea: nonlinear dynamics live in
 
 <!-- ─────────────────────────────────────────────────
   SLIDE 6 · CHICKEN-AND-EGG
-  Both — 0:50
+  Andrew — 0:50
 ───────────────────────────────────────────────── -->
 
 # SINDyC is a chicken-and-egg problem
