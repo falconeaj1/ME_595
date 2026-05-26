@@ -24,7 +24,7 @@
         font-size="15" font-weight="700" fill="#4B2E83">Agent</text>
   <text x="115" y="116" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="13" fill="#4B2E83">u&#x2099; = &#x0398;<tspan dy="4" font-size="10">a</tspan><tspan dy="-4">(x&#x2099;) &#x039E;</tspan><tspan dy="4" font-size="10">a</tspan><tspan dy="-4"/></text>
+        font-size="13" fill="#4B2E83">u<tspan baseline-shift="-25%" font-size="9">n</tspan> = Θ<tspan baseline-shift="-25%" font-size="9">a</tspan>(x<tspan baseline-shift="-25%" font-size="9">n</tspan>) Ξ<tspan baseline-shift="-25%" font-size="9">a</tspan></text>
   <text x="115" y="150" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
         font-size="11" font-style="italic" fill="#4B2E83">Distilled Policy</text>
@@ -37,9 +37,12 @@
   <text x="565" y="80" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
         font-size="15" font-weight="700" fill="#8B6914">Environment</text>
-  <text x="565" y="110" text-anchor="middle"
+  <text x="565" y="106" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="13" fill="#8B6914">x&#x2099;&#x208A;&#x2081; = x&#x2099; +<tspan x="565" dy="14">&#x0398;<tspan dy="4" font-size="10">e</tspan><tspan dy="-4">(x&#x2099;, u&#x2099;) &#x039E;</tspan><tspan dy="4" font-size="10">e</tspan><tspan dy="-4"/></tspan></text>
+        font-size="12" fill="#8B6914">x<tspan baseline-shift="-25%" font-size="8.5">n+1</tspan> = x<tspan baseline-shift="-25%" font-size="8.5">n</tspan> +</text>
+  <text x="565" y="123" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#8B6914">Θ<tspan baseline-shift="-25%" font-size="8.5">e</tspan>(x<tspan baseline-shift="-25%" font-size="8.5">n</tspan>, u<tspan baseline-shift="-25%" font-size="8.5">n</tspan>) Ξ<tspan baseline-shift="-25%" font-size="8.5">e</tspan></text>
   <text x="565" y="160" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
         font-size="11" font-style="italic" fill="#8B6914">Reduced Order Model</text>
@@ -53,9 +56,12 @@
   <text x="198" y="166" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
         font-size="15" font-weight="700" fill="#B85C1A">Reward</text>
-  <text x="198" y="194" text-anchor="middle"
+  <text x="198" y="193" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="11.5" fill="#B85C1A">r = 10&#x00B7;&#x1D7D9; &#x2212; 0.01&#x00B7;x<tspan dy="4" font-size="9">tip</tspan><tspan dy="-9" font-size="9">2</tspan><tspan dy="5"/><tspan x="198" dy="14"> &#x2212; (h<tspan dy="4" font-size="9">tip</tspan><tspan dy="-4"> &#x2212; 2)</tspan><tspan dy="-5" font-size="9">2</tspan><tspan dy="5"> &#x2212; &#x03B5;&#x2016;&#x03B8;&#x0307;&#x2016;</tspan><tspan dy="-5" font-size="9">2</tspan><tspan dy="5"/></tspan></text>
+        font-size="11.5" fill="#B85C1A">r = 10 − 0.01x<tspan baseline-shift="-25%" font-size="8">tip</tspan><tspan baseline-shift="35%" font-size="8">2</tspan></text>
+  <text x="198" y="209" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="11.5" fill="#B85C1A">− (h<tspan baseline-shift="-25%" font-size="8">tip</tspan> − 2)<tspan baseline-shift="35%" font-size="8">2</tspan> − ε||θ̇||<tspan baseline-shift="35%" font-size="8">2</tspan></text>
 
   <!-- ══ ARROW 1: action u_n ══════════════════════════════════════════════
        Agent right-mid (200,112) → right to x=369 → up to y=92
@@ -66,7 +72,7 @@
         marker-end="url(#arr-purple)"/>
   <text x="285" y="102" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="12" fill="#4B2E83">action  u&#x2099;</text>
+        font-size="12" fill="#4B2E83">action u<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
 
   <!-- ══ PURPLE BRANCH → REWARD top-⅓ right edge ═════════════════════════
        Junction at (369,112); extend vertical DOWN to y=182, then left
@@ -101,11 +107,11 @@
   <!-- label above the horizontal segment (415,132)→(479,132) -->
   <text x="447" y="122" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="12" fill="#555555">state  x&#x2099;</text>
+        font-size="12" fill="#555555">state x<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
   <!-- label above the bottom gray horizontal, 70 px left of right vertical -->
   <text x="600" y="252" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="12" fill="#555555">new state  x&#x2099;&#x208A;&#x2081;</text>
+        font-size="12" fill="#555555">new state x<tspan baseline-shift="-25%" font-size="8.5">n+1</tspan></text>
 
   <!-- ══ ARROW 3: reward r_n ══════════════════════════════════════════════
        Reward left-mid (255,275) → left → up → Agent left bottom-⅓
@@ -116,6 +122,6 @@
   <!-- label above the bottom horizontal segment, centered on (-38,83) -->
   <text x="22" y="189" text-anchor="middle"
         font-family="'Helvetica Neue',Arial,sans-serif"
-        font-size="12" fill="#B85C1A">reward  r&#x2099;</text>
+        font-size="12" fill="#B85C1A">reward r<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
 
 </svg>

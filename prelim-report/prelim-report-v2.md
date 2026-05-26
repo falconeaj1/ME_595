@@ -38,7 +38,7 @@ Fitting $M{=}10$ independent SINDy models on 80% bootstrap subsamples yields a f
 
 The Dyna architecture [6] alternates cheap model-based rollouts with real data collection. In SINDy-RL [1], the surrogate is the E-SINDy ensemble and the planner is PPO [5]. Figure 2 shows the control loop; in SINDy-RL the Environment box is instantiated twice — as the E-SINDy surrogate during training and as real MuJoCo during data collection.
 
-![**Figure 2.** The RL control loop. In SINDy-RL, the Environment is instantiated as the E-SINDy surrogate for cheap policy training and as real MuJoCo for data collection and evaluation.](figures/rl_loop.svg)
+![**Figure 2.** The RL control loop. In SINDy-RL, the Environment is instantiated as the E-SINDy surrogate for cheap policy training and as real MuJoCo for data collection and evaluation.](figures/rl_loop.svg.png)
 
 A Schroeder multi-sine sweep [10] bootstraps the initial dataset $\mathcal{D}$. Each Dyna iteration refits E-SINDy on near-upright transitions, runs PPO for 100k surrogate steps (warm-started from the prior policy), then collects 4,000 real transitions. After convergence, the best checkpoint is distilled via behavioral cloning:
 
@@ -58,7 +58,7 @@ The pipeline in `notebooks/sindy-rl.ipynb` runs five stages: (1) Schroeder boots
 
 ### 3.3  Metrics
 
-We evaluate on real-environment step count (data efficiency), success rate ($\geq$500 steps), mean episode length, SINDy RMSE (surrogate quality), and distillation $R^2$ and term count (compactness).
+We evaluate on real-environment step count (data efficiency), success rate (episodes lasting at least 500 steps), mean episode length, SINDy RMSE (surrogate quality), and distillation $R^2$ and term count (compactness).
 
 ## 4  Preliminary Results
 
@@ -70,19 +70,13 @@ Full-order PPO achieves mean reward $9{,}324 \pm 2$, 100% success, and mean epis
 
 The Dyna loop converged in four iterations using 27,512 real steps — **14.5× fewer than the baseline**. Figure 3 shows episode length and surrogate RMSE across iterations; the RMSE rise at iterations 3–4 reflects the improving policy visiting states further from vertical, yet the surrogate remained accurate enough in the near-upright band to train a transferable policy. A post-loop evaluation of the iteration-4 checkpoint gave **75% success and mean episode length 763 steps**.
 
-![**Figure 3.** Dyna loop convergence. Bars (left): mean real episode length. Line (right): SINDy RMSE. RMSE rises at iterations 3–4 as the policy explores harder states, but the surrogate stays accurate enough near vertical to yield a transferable policy.](figures/fig5_convergence.png)
+![**Figure 3.** Dyna loop convergence. Bars (left): mean real episode length. Line (right): SINDy RMSE. Iteration 4 reached 805 mean real steps and 80% success during the loop; a post-loop evaluation of the selected checkpoint reached 763 mean steps and 75% success.](figures/fig5_convergence.png)
 
-| Iter | Cumul. steps | RMSE | Surr. len | Real len | Success |
-|------|-------------|------|-----------|----------|---------|
-| Bootstrap | 2,897 | 0.021 | — | — | — |
-| 1 | 7,023 | 0.015 | 12.6 | $\approx$12 | 0% |
-| 2 | 11,150 | 0.013 | 12.7 | $\approx$12 | 0% |
-| 3 | 15,461 | 0.094 | 31.1 | $\approx$31 | 0% |
-| 4 | 27,512 | 0.090 | **805** | **805** | **80%** |
-
-### 4.3  What Didn't Work: Three Obstacles
+### 4.3  What Didn't Work: Obstacles
 
 Three obstacles prevented convergence on early attempts. First, a **degree-2 RMSE ceiling**: over 25 iterations the RMSE oscillated at 0.10–0.16 regardless of data volume (5k→90k transitions), because a 36-feature degree-2 library cannot express the inter-mode coupling that dominates IDP dynamics. Fix: `SINDY_DEGREE=3` (120 features), which dropped RMSE to 0.013 within two iterations. Second, a **near-upright filter geometry bug**: the filter threshold was set to 1.6 m by inheriting a reward-shaping constant (`TIP_HEIGHT_TARGET=2.0`) that has no relation to the pendulum's physical reach of $L_1+L_2=1.2$ m, silently making the filter a no-op every iteration. Fix: `SINDY_H_MIN=1.10` m, derived from segment geometry. Third, **surrogate exploitation**: in a diagnostic run, surrogate reward jumped 9× while real episode length collapsed 87%, as the policy found action sequences the polynomial predicted as highly rewarding but which were physically invalid. Neither uncertainty penalization nor rollback alone is sufficient — shared polynomial basis means all ensemble members extrapolate identically, so disagreement-based penalties are blind to the exploit; rollback limits damage but cannot prevent it. Fix: both mechanisms together.
+
+A parallel Track-A diagnostic reinforced this failure mode. In a simpler fixed-surrogate variant, PPO was trained inside a SINDy model fit from near-upright MuJoCo probes and then transferred directly to real MuJoCo. The best polynomial SINDy-PPO checkpoint reached only 31.2 mean real steps with 0% success, and a trig-library branch reached only 17.8 mean real steps with 0% success despite improved one-step diagnostics. This suggests that PPO transfer needs surrogate accuracy over long recursive rollouts and over the policy-induced state-action distribution, not just low one-step error near upright.
 
 ### 4.4  Policy Distillation
 
@@ -90,46 +84,14 @@ Behavioral cloning from the best Dyna checkpoint produced a 165-term degree-3 po
 
 ![**Figure 4.** Method comparison. Success rate and mean episode length for baseline PPO, SINDy-RL NN, and the distilled sparse polynomial.](figures/fig6_comparison.png)
 
-STLSQ retained all 165/165 policy terms — no sparsity was achieved. The IDP requires the full expressiveness of a degree-3 polynomial: the dynamics surrogate is similarly dense (690/720 nonzero coefficients). The polynomial is nonetheless 59× more compact than the 9,731-param NN and is a printable closed-form expression. Inspecting dominant terms reveals recognizable control structure — a bias ($-0.626$), proportional angle feedback ($\cos\theta_1$: $+25.5$, $\cos\theta_2$: $-3.8$), velocity damping ($\dot{x}$: $+4.4$, $\dot{\theta}_1$: $+3.5$), and inter-pole coupling ($\cos\theta_1\times\cos\theta_2$: $-158.2$) — but the remaining approximately 120 small cubic cross-terms encode NN residuals rather than physical structure. The data efficiency gain is the clearest result: 27,512 Dyna steps (14.5×) for the NN, 77,512 total steps (5.2×) for the full pipeline including distillation. The distillation step costs 50k additional real interactions and reduces success from 75% to 65%; it is only justified by a hard downstream requirement for a closed-form controller.
+STLSQ retained all 165/165 policy terms, so the polynomial is compact but not sparse. It is still 59× smaller than the 9,731-param NN and exposes recognizable dominant terms: bias, proportional angle feedback, velocity damping, and inter-pole coupling. The remaining small cubic cross-terms appear to encode NN residuals rather than clean physical structure. The clearest result is data efficiency: 27,512 Dyna steps (14.5×) for the NN and 77,512 total steps (5.2×) for the distilled controller, with distillation reducing success from 75% to 65% in exchange for a closed-form policy.
 
-### 4.5  Code Repository
+### 4.5  Summary, Code, and Next Steps
 
-All code and results: **https://github.com/falconeaj1/ME_595**  
-Key notebooks: `notebooks/full-order-simulation.ipynb` (baseline) · `notebooks/sindy-rl.ipynb` (SINDy-RL pipeline). Professor Michelle Hickner added as collaborator (GitHub: mhickner).
+Compared with baseline PPO's 400,000 real steps for 100% success, SINDy-RL used 27,512 real Dyna steps for 75% success and the distilled 165-term polynomial used 77,512 total real steps for 65% success. Next steps are STLSQ threshold ablations and direct training in a structure-constrained surrogate. Code: **https://github.com/falconeaj1/ME_595**; key notebooks are `full-order-simulation.ipynb` and `sindy-rl.ipynb`; Professor Michelle Hickner added as collaborator.
 
-## 5  Summary and Next Steps
-
-| Approach | Real-env steps | Mean ep len | Success | Inspectable | Parameters |
-|----------|---------------|-------------|---------|-------------|------------|
-| Baseline PPO | 400,000 | 1,000 | 100% | No | 9,731 |
-| SINDy-RL NN (best Dyna) | 27,512 | 763 | 75% | No | 9,731 |
-| SINDy-RL Poly (degree-3) | 77,512† | 672 | 65% | Partial‡ | 165 terms |
-
-†27,512 Dyna steps + 50,000 MuJoCo distillation rollouts.  
-‡Dominant terms physically recognizable; approximately 120 small cubic cross-terms are not. 59× more compact than baseline NN.
-
-Both deliverables demonstrate data-efficient interpretable control. The open questions are: whether a tighter STLSQ threshold trades sparsity for robustness gracefully, and whether training directly in a structure-constrained surrogate can produce a sparse policy without a separate distillation step.
-
-\noindent\rule{\linewidth}{0.4pt}
-
-## CRediT Statement
-
-\begingroup
-\small
-\begin{tabular}{lll}
-\textbf{Contribution} & \textbf{Patrick Smith} & \textbf{Andrew Falcone} \\
-\hline
-Conceptualization & Yes & Yes \\
-Methodology — SINDy-RL Dyna loop & Lead & Supporting \\
-Methodology — sparse policy distillation & Lead & Supporting \\
-Software — \texttt{sindy-rl.ipynb} & Lead & — \\
-Software — \texttt{full-order-simulation.ipynb} & Lead & — \\
-Formal analysis (obstacle diagnosis) & Lead & Supporting \\
-Investigation & Yes & Yes \\
-Writing — original draft \& review & Yes & Yes \\
-Visualization & Yes & Yes \\
-\end{tabular}
-\endgroup
+\noindent\textbf{CRediT and AI-Assisted Work Disclosure.}
+Patrick Smith led SINDy-RL implementation, baseline PPO, distillation, and obstacle diagnosis. Andrew Falcone supported methodology, diagnostic experiments, visualization, and writing/review. Both authors contributed to interpretation. AI tools assisted with notebook organization, code drafting, debugging, and experiment iteration; the authors reviewed and executed the work and are responsible for the submitted analysis.
 
 \newpage
 
