@@ -1,20 +1,3 @@
-## CRediT Statement
-
-| Contribution | Patrick Smith | Andrew Falcone |
-|---|---|---|
-| Conceptualization | Yes | Yes |
-| Methodology — SINDy-RL Dyna loop | Lead | Supporting |
-| Methodology — sparse policy distillation | Lead | Supporting |
-| Software — `sindy-rl.ipynb` | Lead | — |
-| Software — `full-order-simulation.ipynb` | Lead | — |
-| Formal analysis (obstacle diagnosis) | Lead | Supporting |
-| Investigation | Yes | Yes |
-| Writing — original draft | Yes | Yes |
-| Writing — review & editing | Yes | Yes |
-| Visualization | Yes | Yes |
-
----
-
 # References
 
 [1] Zolman, N., Fasel, U., Kutz, J. N., & Brunton, S. L. (2024). SINDy-RL: Interpretable and efficient model-based reinforcement learning. *arXiv:2403.09110*.
