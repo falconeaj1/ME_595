@@ -767,6 +767,7 @@ Overall, the SINDy-LQR approach achieved stable transfer with roughly 27× fewer
 
 <!-- ─────────────────────────────────────────────────
   SLIDE 13 · STRETCH GOAL
+  Andrew
 ───────────────────────────────────────────────── -->
 <!-- _backgroundColor: #F0EDF7 -->
 
@@ -787,6 +788,7 @@ Phase 3 is the stretch goal: combine the interpretable dynamics model from the R
 
 <!-- ─────────────────────────────────────────────────
   SLIDE 14 · BONUS
+  Patrick
 ───────────────────────────────────────────────── -->
 <!-- _backgroundColor: #F0EDF7 -->
 

@@ -1,44 +1,65 @@
 # SINDy-RL for Inverted Double Pendulum
 
-**Course:** ME595  
+**Course:** ME 595 · Spring 2026
 **Authors:** Patrick Smith & Andrew Falcone
+
+---
+
+## Key Notebooks
+
+These two notebooks contain all results reported in the preliminary report:
+
+| Notebook | Description |
+|----------|-------------|
+| [`notebooks/full-order-simulation.ipynb`](notebooks/full-order-simulation.ipynb) | **Baseline PPO** — full-order MuJoCo training (400k steps, 100% success, 9,731-param network). Performance ceiling. |
+| [`notebooks/sindy-rl.ipynb`](notebooks/sindy-rl.ipynb) | **SINDy-RL Dyna loop** — E-SINDy surrogate + iterative PPO training + sparse polynomial distillation. Converges in 4 iterations (27,512 real steps); distilled 165-term degree-3 policy achieves 65% success. |
 
 ---
 
 ## Overview
 
-This project applies the SINDy-RL framework (Zolman et al.) to an inverted double pendulum on a cart. Two parallel tracks are compared against a full-order PPO baseline: Track A identifies a sparse SINDy dynamics surrogate via an iterative active-learning loop and trains an RL controller inside it; Track B trains a reduced-order NN policy directly on the full-order MuJoCo simulator and distills it into a sparse SINDy polynomial control law `π(x)→u`. Phase 3 joins both tracks — loading Track A's validated SINDy dynamics model and applying Track B's distillation methodology inside it to produce a fully interpretable closed-loop system. The four-way comparison (Baseline, Track A, Track B, Phase 3 Join) evaluates the trade-offs between interpretability, real-sim cost, and task performance.
+This project applies the SINDy-RL framework (Zolman et al. 2024) to an inverted double pendulum on a cart. The goal is to train an interpretable sparse polynomial controller using far fewer real-simulator interactions than a standard PPO baseline.
 
-**Environment:** `InvertedDoublePendulum-v5` — MuJoCo cart-pole with a double-linked pendulum, 9-dim observation, 1-dim cart force action.
+**Two deliverables:**
+1. A data-efficient NN policy trained via a SINDy-RL Dyna loop (E-SINDy surrogate + PPO, 14.5× fewer real steps than baseline)
+2. A sparse degree-3 polynomial distilled from that policy (165 terms, 65% task success, fully auditable)
+
+**Environment:** `InvertedDoublePendulum-v5` — MuJoCo cart-pole with two linked pendulum segments, 9-dim observation, 1-dim cart force action.
+
+---
+
+## Results Summary
+
+| Approach | Real-env steps | Mean ep len | Success ≥500 | Policy |
+|----------|---------------|-------------|--------------|--------|
+| Baseline PPO | 400,000 | 1,000 | 100% | 9,731-param MLP |
+| SINDy-RL NN (best Dyna checkpoint) | 27,512 | 763 | 75% | 9,731-param MLP |
+| SINDy-RL Sparse (degree-3 poly) | 77,512† | 672 | 65% | 165 terms |
+
+†27,512 Dyna steps + 50,000 MuJoCo rollouts for distillation data collection.
 
 ---
 
 ## Repository Structure
 
 ```
-me595/
+ME_595/
 ├── notebooks/
-│   ├── inverted_double_pendulum_intro.ipynb  Phase 1  — environment setup ✅
-│   ├── simulation.ipynb                      Baseline — full-order PPO reference policy ✅
-│   ├── trackA_sindy_dynamics.ipynb           Phase 2a — Active SINDy + RL controller (Andrew) ⬜
-│   ├── trackB_sindy_rl_policy.ipynb          Phase 2b — NN policy → sparse SINDy distillation (Patrick) ⬜
-│   ├── join_sindy_rl.ipynb                   Phase 3  — Track A surrogate + Track B distillation ⬜
-│   └── evaluation.ipynb                      Phase 4  — four-way comparison ⬜
-├── sindy_rl/
-│   ├── envs/
-│   │   └── sindy_env.py                      SINDySurrogateEnv wrapper (Track A + Phase 3)
-│   └── models/
-│       ├── trackA_sindy_iter{N}.pkl           SINDy dynamics model per iteration (Track A)
-│       ├── trackA_controller/                PPO controller (Track A)
-│       └── trackB_sindy_policy.pkl           Sparse SINDy policy π(x)→u (Track B)
+│   ├── full-order-simulation.ipynb     ★ Baseline PPO oracle
+│   ├── sindy-rl.ipynb                  ★ SINDy-RL Dyna loop + distillation
+│   ├── inverted_double_pendulum_intro.ipynb  Environment setup / exploration
+│   ├── trackA_sindy_dynamics.ipynb     Track A: SINDy dynamics ID (Andrew)
+│   ├── trackA_sindy_lqr_transfer.ipynb Track A: LQR transfer (Andrew)
+│   └── [other exploratory notebooks]
+├── src/                                Shared utilities (plotting, envs)
 ├── data/
-│   └── trajectories_trackA_iter{N}.npz       Controller-generated near-equilibrium data (Track A)
-├── results/
-│   ├── trackA/                               Track A rollout errors, learning curves, eval
-│   ├── trackB/                              Track B learning curves, eval + sparse policy
-│   └── join/                                Phase 3 join learning curve + eval
+│   ├── baseline/                       Baseline PPO checkpoints + trajectories
+│   └── sindy_rl/                       Dyna loop data, SINDy models, PPO checkpoints
+├── prelim-report/                      Preliminary report draft + figures
+├── results/                            Saved evaluation outputs
+├── references/                         Papers
 └── eng-docs/
-    └── project_tracker.md                    Full project plan & task breakdowns
+    └── project_tracker.md              Full project plan & task breakdowns
 ```
 
 ---
@@ -49,12 +70,6 @@ Requires Python 3.14 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
-```
-
-Run Python or tools inside the environment:
-
-```bash
-uv run python
 uv run jupyter lab
 ```
 
@@ -63,7 +78,6 @@ uv run jupyter lab
 ```bash
 uv add <package>          # add a dependency
 uv add --dev <package>    # add a dev-only dependency
-uv remove <package>       # remove a dependency
 uv sync                   # install after editing pyproject.toml
 ```
 
@@ -76,44 +90,22 @@ uv sync                   # install after editing pyproject.toml
 | Property | Value |
 |----------|-------|
 | Gym ID | `InvertedDoublePendulum-v5` |
-| Observation | 9-dim `Box(-∞, ∞)` — `[x, sin θ₁, sin θ₂, cos θ₁, cos θ₂, ẋ, θ̇₁, θ̇₂, f_constraint]` |
-| State (for SINDy) | 6-dim — `[x, θ₁, θ₂, ẋ, θ̇₁, θ̇₂]` from `qpos`/`qvel` |
-| Action | 1-dim `Box(-1, 1)` — cart force |
+| Observation | 9-dim — `[x, sin θ₁, sin θ₂, cos θ₁, cos θ₂, ẋ, θ̇₁, θ̇₂, f_constraint]` |
+| State (for SINDy) | 6-dim — `[x, θ₁, θ₂, ẋ, θ̇₁, θ̇₂]` |
+| Action | 1-dim — cart force |
 | Timestep | dt = 0.05 s (20 Hz) |
 | Max episode | 50 s / 1000 steps |
-| Termination | Tip height ≤ 1 m or \|cart x\| > 0.2 m |
-| Reward | `10 − dist_penalty − vel_penalty` (alive bonus implicit) |
-
----
-
-## Project Phases
-
-| Phase | Description | Owner | Status |
-|-------|-------------|-------|--------|
-| 1 | Simulation environment setup | Patrick | ✅ Complete |
-| B | Full-order PPO baseline (`simulation.ipynb`) | Patrick | ✅ Complete |
-| 2a | Track A: iterative active SINDy + RL controller | Andrew | ⬜ Next |
-| 2b | Track B: Train 6-dim NN on full-order MuJoCo → sparse SINDy policy distillation | Patrick | ⬜ Next |
-| 3 | Join: Train 6-dim NN in Track A's surrogate → distill to sparse SINDy π(x)→u | Shared | ⬜ |
-| 4 | Evaluation & comparison (four-way) | Shared | ⬜ |
-
-See [eng-docs/project_tracker.md](eng-docs/project_tracker.md) for full task breakdowns.
-
----
-
-## Full-Order PPO Baseline (`simulation.ipynb`)
-
-Trains PPO directly on the MuJoCo simulator — no surrogate, no model reduction. This is the performance ceiling for Phase 4: the best achievable result when given unlimited access to the real simulator. Track A and Phase 3 Join aim to approach this with far fewer real-simulator interactions; Track B trades real-sim cost for an interpretable sparse policy.
-
-- **Policy:** MLP `[64, 64]`, maps 9-dim obs → 1-dim cart force
-- **Training:** 1M steps, 8 parallel envs, no BC initialisation needed (dense reward from step 1)
-- **Result:** pending — performance ceiling for Phase 4
+| Termination | Tip height ≤ 1.0 m |
+| Reward | `10·𝟙 − (h_tip − 2)² − ε‖θ̇‖²` |
 
 ---
 
 ## References
 
-- Zolman et al., *SINDy-RL: Interpretable and Efficient Model-Based Reinforcement Learning* (2024)
+- Zolman et al. 2024 — *SINDy-RL: Interpretable and Efficient Model-Based Reinforcement Learning* (arXiv:2403.09110)
+- Brunton, Proctor & Kutz 2016 — *Discovering governing equations from data* (PNAS)
+- Kaiser, Kutz & Brunton 2018 — *Sparse identification of nonlinear dynamics for model predictive control* (Proc. R. Soc. A)
+- Fasel et al. 2022 — *Ensemble-SINDy* (Proc. R. Soc. A)
+- Schulman et al. 2017 — *Proximal Policy Optimization* (arXiv:1707.06347)
 - PySINDy: <https://pysindy.readthedocs.io/>
 - Stable-Baselines3: <https://stable-baselines3.readthedocs.io/>
-- Gymnasium MuJoCo environments: <https://gymnasium.farama.org/environments/mujoco/>
