@@ -1,0 +1,15 @@
+\usepackage{float}
+\usepackage{wrapfig}
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][]{%
+  \origfigure[H]
+}{%
+  \endorigfigure
+}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, labelformat=empty}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{0pt}
+\usepackage{graphicx}
+\setkeys{Gin}{width=0.72\linewidth,keepaspectratio}

@@ -23,7 +23,7 @@ Patrick Smith · Andrew Falcone · ME 595 · Spring 2026
 - **§4.1** — Baseline result: 400k steps, 100% success, mean reward 9,324, 9,731-parameter network — the ceiling.
 - **§4.2** — Dyna loop converged in 4 iterations (27,512 real steps, 14.5× fewer than baseline); best NN policy achieves 75% success and mean episode length 763.
 - **§4.3** — Three engineering obstacles had to be resolved before convergence: degree-2 RMSE ceiling, a silent filter geometry bug, and surrogate exploitation — each diagnosed and fixed.
-- **§4.4** — Sparse policy distillation: degree-3 polynomial with 165 terms achieves 65% success; perturbation augmentation is essential to close the behavioral cloning distribution-shift gap.
+- **§4.4** — Policy distillation: a degree-3 polynomial with 165 terms achieves 65% success and 14.5× better data efficiency than baseline; STLSQ achieved little to no sparsity (165/165 terms retained), so interpretability rests on compactness (165 terms vs 9,731 NN params) and the ability to inspect the equation — not on having a short formula.
 
 ---
 
@@ -174,7 +174,7 @@ Two goals drive the evaluation: **(1) data efficiency** — can we match baselin
 | Success rate (≥500 steps) | Task performance | Whether the controller actually works. 500 steps = 25 s of balance; 1000 = full episode. Compared against baseline's 100%. |
 | Mean episode length | Task performance (graded) | A controller that falls at step 600 is meaningfully better than one that falls at step 60 — success rate alone misses this. |
 | SINDy RMSE | Surrogate quality | Proxy for how much the Dyna loop can trust its internal model. High RMSE → PPO trains against inaccurate physics → policy may not transfer to real env. |
-| Term count + R² (distillation) | Interpretability | Fewer terms = more compact, auditable controller. R² measures how faithfully the polynomial captures the NN's decisions before deployment testing. A high R² with a low term count is the target. |
+| Term count + R² (distillation) | Compactness / partial interpretability | R² measures how faithfully the polynomial captures the NN's decisions. Term count measures compactness relative to the 9,731-parameter NN. A truly sparse result (few terms, each physically meaningful) was the goal; the actual result — 165/165 terms retained, R²=0.992 — is compact but not sparse. |
 
 ---
 
@@ -242,9 +242,9 @@ The near-upright filter kept only transitions where tip height > `SINDY_H_MIN`. 
 
 *Diagnosis:* `fit == data` in every iteration's summary line. The filter should produce `fit < data` when it is active.
 
-*Root cause:* `SINDY_H_MIN = 1.6` was derived from the reward formula's reference height (z = 2.0 m) rather than from the actual pendulum geometry. The reward's reference height is not an achievable physical state.
+*Root cause:* Because the E-SINDy surrogate must compute rewards analytically from state (MuJoCo is not running inside the surrogate), we implemented our own `reward_done()` function replicating Gymnasium's formula, and introduced a named constant `TIP_HEIGHT_TARGET = 2.0` to match Gymnasium's hardcoded literal `(y − 2)²`. That constant is correct for the reward function — our reward exactly matches Gymnasium's to machine precision. Our mistake was then using `TIP_HEIGHT_TARGET` as the reference for the filter threshold, setting `SINDY_H_MIN ≈ 0.8 × 2.0 = 1.6`. The reward constant `2.0` is a reward-shaping value, not the physical height the pendulum can reach. The correct reference is the segment geometry: maximum achievable tip height = L₁ + L₂ = 0.6 + 0.6 = 1.2 m. Gymnasium's own documentation states this explicitly.
 
-*Fix:* `SINDY_H_MIN = 1.10` m — within the achievable range (1.0, 1.2) m, corresponding to poles within ≈24° of vertical.
+*Fix:* `SINDY_H_MIN = 1.10` m — derived from segment lengths, within the achievable range (1.0, 1.2) m, corresponding to poles within ≈24° of vertical.
 
 ---
 
@@ -268,11 +268,11 @@ At iteration 6 of that diagnostic run, surrogate reward jumped from 497 to 4,525
 
 ---
 
-#### §4.4 — Sparse policy distillation
+#### §4.4 — Policy distillation
 
 **Source:** `sindy-rl.ipynb` §6
 
-**Message:** Behavioral cloning from the best Dyna checkpoint produces a 165-term polynomial achieving 65% success; two implementation choices were required to reach that level.
+**Message:** Behavioral cloning from the best Dyna checkpoint produces a 165-term degree-3 polynomial achieving 65% success with 14.5× better data efficiency than baseline. STLSQ achieved no sparsity — all 165 terms were retained — so interpretability is partial: the dominant terms are physically recognizable, but the full 165-term expression is not human-auditable in the way a 5-term equation would be.
 
 **Figure F4 (fig6_comparison.png):** Comparison bar chart — success rate (%) and mean episode length for three methods: Baseline PPO (100%, 1000), SINDy-RL NN (75%, 763), Sparse polynomial (65%, 672). Secondary axis or annotation: real-env step count (400k / 27.5k / 77.5k).
 
@@ -292,7 +292,7 @@ Initial distillation used the final loop policy (iter 4 end-state). Mean episode
 
 Degree-2 polynomial on the 8-dim observation gave OLS R² ≈ 0.905 — a hard ceiling, regardless of data volume. A tanh neural network policy has no natural polynomial sparsity; the degree must match the function's curvature across the full state space.
 
-*Fix:* `DIST_DEGREE = 3` — 165 candidate features on the obs-8 space; OLS R² = 0.992, STLSQ retains all 165 terms at threshold 0.05. The lack of sparsity in the policy (vs. the dynamics) is expected: physics has a sparse structure that neural network policies do not.
+*Fix:* `DIST_DEGREE = 3` — 165 candidate features on the obs-8 space; OLS R² = 0.9916, STLSQ retains all 165/165 terms at threshold 0.05. No sparsity was achieved — the threshold pruned nothing. This is expected: physics has a sparse structure that neural network policies do not. The surrogate dynamics also showed little sparsity: 690 nonzero coefficients out of 720 possible (120 features × 6 state dims), confirming the IDP requires dense polynomial representations at degree 3.
 
 ---
 
@@ -303,6 +303,26 @@ With degree-3 and the correct teacher (R² = 0.992), the distilled policy achiev
 *Fix (perturbation augmentation):* For each of the 50k expert transitions, perturb the state with Gaussian noise (σ per dimension: [0.02, 0.02, 0.02, 0.05, 0.10, 0.10]) and re-query the NN oracle for the correct action. No additional MuJoCo rollouts required. Dataset expands 5× (50k → 300k pairs). R² remains 0.992; success rate rises to 65% (up from ~0% without augmentation).
 
 *Reference:* Ross et al. 2011 (DAgger) — the theoretical basis for interactively querying the oracle at off-distribution states to reduce compounding error.
+
+---
+
+**§4.4 Results and qualitative observations**
+
+**Sparsity:** None achieved. STLSQ with threshold 0.05 retained all 165/165 policy terms and the SINDy dynamics ensemble is similarly dense (690/720 nonzero coefficients per model). The IDP apparently requires the full expressiveness of a degree-3 polynomial — no terms could be eliminated without degrading fit quality.
+
+**Compactness vs. interpretability:** The 165-term polynomial is 59× more compact than the 9,731-parameter NN (165 vs 9,731 numbers to inspect). The full expression can be printed, stored in a few kilobytes, and evaluated without a matrix multiply stack. This is a real practical gain, but it is not the same as interpretability in the scientific sense.
+
+**What is interpretable:** Inspecting the dominant terms by coefficient magnitude reveals recognizable control structure:
+- *Bias*: `−0.626 × 1` — a constant baseline force
+- *Proportional angle feedback*: large terms on `cos θ₁` (+25.5) and `cos θ₂` (−3.8) — the primary restoring force increases with pole deviation from vertical
+- *Velocity damping*: linear terms on ẋ (+4.4), θ̇₁ (+3.5), θ̇₂ (−1.1) — derivative feedback analogous to a PD controller
+- *Inter-pole coupling*: large quadratic term `cos θ₁ × cos θ₂` (−158.2) — the dominant cross-coupling between the two unstable modes, physically expected in a double pendulum
+
+**What is not interpretable:** The remaining ~120 terms are small-coefficient cubic cross-products (e.g., `+0.0001 × x₀³`, `+0.0003 × x₀² sin θ₁`) with no obvious physical meaning. These appear to encode the residual nonlinearity of the NN's tanh activations rather than any mechanistic structure. A reader cannot audit these terms to gain insight into the control strategy.
+
+**Data efficiency:** The clearest result. The full SINDy-RL pipeline (Dyna loop + distillation data collection) required 77,512 real MuJoCo steps vs 400,000 for the baseline PPO — a **5.2× reduction**. The Dyna loop alone used 27,512 steps — a **14.5× reduction** — to produce a NN policy achieving 75% success compared to the baseline's 100%. Zolman et al.'s "10–100× fewer interactions" claim covers the Dyna loop only; the distillation is an optional downstream step not included in that figure.
+
+**Practical cost of distillation — when is it worth it?** The 50k distillation steps are qualitatively cheaper than Dyna steps: the NN is already competent (75% success), so those steps are mostly stable near-upright operation rather than costly exploration failures. However, the distillation still costs 50k additional real interactions and *reduces* task performance from 75% to 65%. That trade-off is only justified if there is a hard downstream requirement for a closed-form controller — embedded hardware with no floating-point stack, formal stability verification, or regulatory auditability. If data collection is the binding constraint, the Dyna loop NN (27,512 steps, 75% success) is the stronger deliverable. The polynomial is an interpretability option, not a performance improvement.
 
 ---
 
@@ -323,13 +343,15 @@ Key notebooks:
 
 **Final comparison table:**
 
-| Approach | Real-env steps | Mean ep len | Success | Interpretable | Parameters |
+| Approach | Real-env steps | Mean ep len | Success | Inspectable | Parameters |
 |---|---|---|---|---|---|
 | Baseline PPO | 400,000 | 1,000 | 100% | ✗ | 9,731 |
 | SINDy-RL NN (best Dyna checkpoint) | 27,512 | 763 | 75% | ✗ | 9,731 |
-| SINDy-RL Sparse (degree-3 poly) | 77,512† | 672 | 65% | ✓ | 165 terms |
+| SINDy-RL Poly (degree-3, dense) | 77,512† | 672 | 65% | Partial‡ | 165 terms |
 
 †27,512 Dyna real-env steps + 50,000 MuJoCo rollout steps to collect expert transitions for distillation. The 5× perturbation augmentation (250k additional training rows) re-queries the NN oracle on perturbed states — no further MuJoCo interactions required.
+
+‡STLSQ retained all 165/165 terms (no sparsity achieved). Dominant terms (bias, angle feedback, velocity damping, inter-pole coupling) are physically recognizable; the remaining ~120 small cubic cross-terms are not. The polynomial is 59× more compact than the NN (165 vs 9,731 numbers) and is a printable closed-form expression, but is not interpretable in the sense of a short, auditable equation.
 
 **Next steps:** combine the SINDy dynamics model with the sparse distilled policy in a closed interpretable loop; ablation study of STLSQ threshold vs. robustness trade-off.
 
