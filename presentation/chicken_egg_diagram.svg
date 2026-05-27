@@ -1,0 +1,47 @@
+<svg width="1060" height="310" viewBox="0 0 1060 310" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="10"
+            refX="14" refY="5" orient="auto">
+      <polygon points="0 0, 14 5, 0 10" fill="#4B2E83"/>
+    </marker>
+    <marker id="ah-black" markerUnits="userSpaceOnUse" markerWidth="32" markerHeight="24"
+            refX="32" refY="12" orient="auto">
+      <polygon points="0 0, 32 12, 0 24" fill="#111"/>
+    </marker>
+  </defs>
+
+  <!-- SINDy surrogate — left -->
+  <rect x="10" y="75" width="260" height="100" rx="8" fill="#4B2E83"/>
+  <text x="140" y="117" text-anchor="middle" fill="white" font-weight="bold" font-size="26">SINDy surrogate</text>
+  <text x="140" y="145" text-anchor="middle" fill="#E8D5A3" font-size="18">open-loop model</text>
+
+  <!-- Thick black floating arrow — "from SINDy to SINDyC" (not touching either box) -->
+  <polygon points="310,119 480,119 480,112 512,125 480,138 480,131 310,131" fill="#111"/>
+
+  <!-- SINDyC surrogate — top of triangle (centered above Near-eq/RL midpoint ≈ 719) -->
+  <rect x="558" y="75" width="280" height="100" rx="8" fill="#4B2E83"/>
+  <text x="698" y="117" text-anchor="middle" fill="white" font-weight="bold" font-size="26">SINDyC surrogate</text>
+  <text x="698" y="145" text-anchor="middle" fill="#E8D5A3" font-size="18">dynamics + control model</text>
+
+  <!-- Near-eq data — bottom left of triangle -->
+  <rect x="395" y="205" width="245" height="90" rx="8" fill="#F0EDF7" stroke="#4B2E83" stroke-width="2.5"/>
+  <text x="517" y="247" text-anchor="middle" fill="#4B2E83" font-weight="bold" font-size="24">Near-eq. data</text>
+  <text x="517" y="273" text-anchor="middle" fill="#4B2E83" font-size="17">needed to fit SINDyC</text>
+
+  <!-- RL Controller — bottom right of triangle -->
+  <rect x="800" y="205" width="245" height="90" rx="8" fill="#FDF8EC" stroke="#8B6914" stroke-width="2.5"/>
+  <text x="922" y="247" text-anchor="middle" fill="#8B6914" font-weight="bold" font-size="24">RL controller</text>
+  <text x="922" y="273" text-anchor="middle" fill="#8B6914" font-size="17">keeps pendulum up</text>
+
+  <!-- Arrow 1: SINDyC → RL controller (trains) -->
+  <line x1="838" y1="125" x2="922" y2="205" stroke="#4B2E83" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="900" y="155" text-anchor="start" fill="#4B2E83" font-size="22" font-weight="600">trains</text>
+
+  <!-- Arrow 2: RL controller → Near-eq data (collects) -->
+  <line x1="800" y1="250" x2="640" y2="250" stroke="#4B2E83" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="720" y="240" text-anchor="middle" fill="#4B2E83" font-size="22" font-weight="600">collects</text>
+
+  <!-- Arrow 3: Near-eq data → SINDyC (fits) -->
+  <line x1="517" y1="205" x2="618" y2="175" stroke="#4B2E83" stroke-width="2.5" marker-end="url(#ah)"/>
+  <text x="528" y="192" text-anchor="end" fill="#4B2E83" font-size="22" font-weight="600">fits</text>
+</svg>

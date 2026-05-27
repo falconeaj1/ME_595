@@ -1,0 +1,37 @@
+<svg width="920" height="182" viewBox="0 0 920 182" xmlns="http://www.w3.org/2000/svg">
+  <!-- ① Reduced Order Model -->
+  <rect x="1" y="12" width="280" height="120" rx="7" fill="#F0EDF7" stroke="#4B2E83" stroke-width="2.5"/>
+  <text x="141" y="36" text-anchor="middle" font-size="14" font-weight="bold" fill="#4B2E83">&#x2460; REDUCED ORDER MODEL</text>
+  <text x="141" y="64" text-anchor="middle" font-size="22" fill="#333" font-style="italic">X&#x2032; = &#x398;(X,U)&#x39E;</text>
+  <text x="141" y="88" text-anchor="middle" font-size="13" fill="#555">SINDy dynamics surrogate</text>
+  <text x="141" y="106" text-anchor="middle" font-size="13" fill="#555">enables simulator-free RL training</text>
+  <!-- Caption below ROM -->
+  <text x="141" y="150" text-anchor="middle" font-size="14" fill="#222">Given current state and action,</text>
+  <text x="141" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">estimate the next state</text>
+
+  <!-- Arrow 1: ROM → NN Policy -->
+  <line x1="281" y1="72" x2="383" y2="72" stroke="#4B2E83" stroke-width="2"/>
+  <polygon points="383,68 391,72 383,76" fill="#4B2E83"/>
+  <text x="336" y="62" text-anchor="middle" font-size="13" fill="#4B2E83">train RL</text>
+  <text x="336" y="86" text-anchor="middle" font-size="13" fill="#4B2E83">in surrogate</text>
+
+  <!-- NN Policy -->
+  <rect x="391" y="38" width="152" height="68" rx="6" fill="#4B2E83"/>
+  <text x="467" y="66" text-anchor="middle" font-size="15" font-weight="bold" fill="white">NN Policy</text>
+  <text x="467" y="89" text-anchor="middle" font-size="18" fill="#E8D5A3" font-style="italic">u = &#x3C0;(x)</text>
+
+  <!-- Arrow 2: NN Policy → Sparse -->
+  <line x1="543" y1="72" x2="625" y2="72" stroke="#8B6914" stroke-width="2"/>
+  <polygon points="625,68 633,72 625,76" fill="#8B6914"/>
+  <text x="588" y="62" text-anchor="middle" font-size="13" fill="#8B6914">distill</text>
+
+  <!-- ② Sparse Dictionary Policy -->
+  <rect x="633" y="12" width="286" height="120" rx="7" fill="#FDF8EC" stroke="#8B6914" stroke-width="2.5"/>
+  <text x="776" y="36" text-anchor="middle" font-size="14" font-weight="bold" fill="#8B6914">&#x2461; SPARSE DICTIONARY POLICY</text>
+  <text x="776" y="64" text-anchor="middle" font-size="22" fill="#333" font-style="italic">u &#x2248; &#x398;(x)&#x3BE;</text>
+  <text x="776" y="88" text-anchor="middle" font-size="13" fill="#555">interpretable polynomial control law</text>
+  <text x="776" y="106" text-anchor="middle" font-size="13" fill="#555">distilled from the trained NN policy</text>
+  <!-- Caption below Sparse -->
+  <text x="776" y="150" text-anchor="middle" font-size="14" fill="#222">Given current state,</text>
+  <text x="776" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#111">estimate the correct action</text>
+</svg>

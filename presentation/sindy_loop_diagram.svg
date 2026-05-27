@@ -1,0 +1,64 @@
+<svg width="720" height="124" viewBox="0 0 720 124" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="7"
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 9 3.5, 0 7" fill="#8B6914"/>
+    </marker>
+  </defs>
+
+  <!-- Bootstrap (dashed, one-time entry) -->
+  <rect x="5" y="12" width="118" height="54" rx="6"
+        fill="#F0EDF7" stroke="#4B2E83" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="64" y="36" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#4B2E83">Bootstrap</text>
+  <text x="64" y="54" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="10" fill="#666">near-upright probes</text>
+
+  <!-- Bootstrap → Fit SINDy -->
+  <line x1="123" y1="39" x2="145" y2="39" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Fit SINDy -->
+  <rect x="145" y="12" width="122" height="54" rx="6" fill="#4B2E83"/>
+  <text x="206" y="36" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#ffffff">Fit SINDy</text>
+  <text x="206" y="54" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="10" fill="#c8b8e8">polynomial dynamics</text>
+
+  <!-- Fit SINDy → Linearize -->
+  <line x1="267" y1="39" x2="289" y2="39" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Linearize / LQR gain (gold) -->
+  <rect x="289" y="12" width="122" height="54" rx="6" fill="#8B6914"/>
+  <text x="350" y="36" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#ffffff">Linearize</text>
+  <text x="350" y="54" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="10" fill="#ffe0a0">→ LQR gain</text>
+
+  <!-- Linearize → Deploy -->
+  <line x1="411" y1="39" x2="433" y2="39" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Deploy -->
+  <rect x="433" y="12" width="122" height="54" rx="6" fill="#4B2E83"/>
+  <text x="494" y="36" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#ffffff">Deploy</text>
+  <text x="494" y="54" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="10" fill="#c8b8e8">in real MuJoCo</text>
+
+  <!-- Deploy → Collect data -->
+  <line x1="555" y1="39" x2="577" y2="39" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Collect data (gold) -->
+  <rect x="577" y="12" width="136" height="54" rx="6" fill="#8B6914"/>
+  <text x="645" y="36" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#ffffff">Collect data</text>
+  <text x="645" y="54" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="10" fill="#ffe0a0">near equilibrium</text>
+
+  <!-- Return loop: Collect data → Fit SINDy (rectangular path below) -->
+  <path d="M 645 66 L 645 96 L 206 96 L 206 66"
+        fill="none" stroke="#8B6914" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- iterate label -->
+  <text x="426" y="114" text-anchor="middle" font-family="Open Sans,Arial,sans-serif"
+        font-size="12" font-weight="700" fill="#8B6914">↻ iterate</text>
+</svg>
