@@ -74,7 +74,7 @@ Full-order PPO achieves mean reward $9{,}324 \pm 2$, 100% success, and mean epis
 
 The Dyna loop converged in four iterations using 27,512 real steps — **14.5× fewer than the baseline**. Figure 3 shows episode length and surrogate RMSE across iterations; the RMSE rise at iterations 3–4 reflects the improving policy visiting states further from vertical, yet the surrogate remained accurate enough in the near-upright band to train a transferable policy. A post-loop evaluation of the iteration-4 checkpoint gave **75% success and mean episode length 763 steps**.
 
-![**Figure 3.** Dyna loop convergence. Bars (left): mean real episode length. Line (right): SINDy RMSE. Iteration 4 reached 805 mean real steps and 80% success during the loop; a post-loop evaluation of the selected checkpoint reached 763 mean steps and 75% success.](figures/fig5_convergence.png)
+![**Figure 3.** Dyna loop convergence. Bars (left): mean real episode length. Line (right): SINDy RMSE. Iteration 4 reached 805 mean real steps and 80% success during the loop; a post-loop evaluation of the selected checkpoint reached 763 mean steps and 75% success.](figures/fig5_convergence.png){width=90%}
 
 ### 4.3  What Didn't Work: Obstacles
 
