@@ -33,7 +33,7 @@ For control-affine systems (SINDy-C [3]), the input $u_k$ enters the library dir
 [^ca]: A system is control-affine if the control input appears linearly in the dynamics: $\dot{\mathbf{x}} = f(\mathbf{x}) + g(\mathbf{x})\,u$, where $f$ and $g$ may be arbitrarily nonlinear in the state. Most mechanical systems driven by forces or torques, including the IDP, satisfy this property, since force enters Newton's second law linearly.
 
 
-[^fep]: Builds polynomial features once per step in pure NumPy and applies all 10 pre-stacked `(10, 6, 120)` coefficient matrices via a single batched matmul, replacing 10 sequential sklearn pipeline calls (~10 ms/step, ~13 min per 75k-step PPO phase) with ~0.93 ms/step (11.5× speedup).
+[^fep]: The bottleneck was `PolynomialLibrary.transform()` from scikit-learn, which carries ~1 ms fixed overhead per call regardless of input size; calling it once per ensemble member cost ~10 ms/step and ~13 min per 75k-step PPO phase. The fix: at construction, extract the `powers_` exponent matrix from sklearn's `PolynomialFeatures` once; at each step, compute features as `np.prod(xu ** powers_, axis=1)` in pure NumPy and apply all 10 pre-stacked `(10, 6, 120)` coefficient matrices via a single batched matmul (~0.93 ms/step, 11.5× speedup).
 
 ### 2.3  E-SINDy: Ensemble Uncertainty Quantification
 
