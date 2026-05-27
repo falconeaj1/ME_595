@@ -5,7 +5,7 @@ ME 595 · Spring 2026
 
 ## 1  Introduction
 
-Safety-critical autonomous systems increasingly require controllers that can be audited, formally verified, and deployed on embedded hardware — requirements that a nine-thousand-parameter neural network cannot satisfy [8, 9]. A closed-form polynomial controller, by contrast, fits in kilobytes, admits analytic stability arguments, and exposes every term to inspection. Sparse Identification of Nonlinear Dynamics (SINDy [2]) produces exactly such expressions by regressing state-transition data against a polynomial library and zeroing out negligible terms. The difficulty is that unstable systems cannot generate the near-equilibrium data SINDy needs without a stabilizing controller that does not yet exist. Zolman et al. [1] resolve this chicken-and-egg problem with SINDy-RL: a Dyna-style [6] loop that co-trains an E-SINDy surrogate and a PPO policy so each iteration improves both. We implement Algorithm 1 from Zolman et al. on the inverted double pendulum (IDP), resolving several non-obvious engineering obstacles to achieve convergence, and deliver (1) a data-efficient NN policy using 14.5× fewer real-environment steps than a full-order baseline, and (2) a degree-3 polynomial distilled from that policy.
+Safety-critical autonomous systems increasingly require controllers that can be audited, formally verified, and deployed on embedded hardware — requirements that a nine-thousand-parameter neural network cannot satisfy [8, 9]. Consider a surgical robot adjusting a tool under tissue contact forces, or a delivery drone maintaining stability over a crowded neighborhood: in both cases a regulator may demand that the control law be inspectable before deployment, and a microcontroller with kilobytes of flash cannot execute a deep network at the required rate. A closed-form polynomial controller, by contrast, fits in kilobytes, admits analytic stability arguments, and exposes every term to inspection. Sparse Identification of Nonlinear Dynamics (SINDy [2]) produces exactly such expressions by regressing state-transition data against a polynomial library and zeroing out negligible terms. The difficulty is that unstable systems cannot generate the near-equilibrium data SINDy needs without a stabilizing controller that does not yet exist. Zolman et al. [1] resolve this chicken-and-egg problem with SINDy-RL: a Dyna-style [6] loop that co-trains an E-SINDy surrogate and a PPO policy so each iteration improves both. We implement Algorithm 1 from Zolman et al. on the inverted double pendulum (IDP), resolving several non-obvious engineering obstacles to achieve convergence, and deliver (1) a data-efficient neural network (NN) policy using 14.5× fewer real-environment steps than a full-order baseline, and (2) a degree-3 polynomial distilled from that policy.
 
 ## 2  Technical Background
 
@@ -20,7 +20,7 @@ Safety-critical autonomous systems increasingly require controllers that can be 
   \vspace{-6pt}
 \end{wrapfigure}
 
-The `InvertedDoublePendulum-v5` environment (MuJoCo/Gymnasium) has two rigid links of equal length $L_1 = L_2 = 0.6$ m on a sliding cart. The 6-dim physical state is $\mathbf{x} = [x,\theta_1,\theta_2,\dot{x},\dot{\theta}_1,\dot{\theta}_2]$; the 9-dim observation replaces raw angles with sin/cos encodings. The single action is cart force. Tip height $h = L_1\cos\theta_1 + L_2\cos(\theta_1+\theta_2)$ falls at 1.0 m, leaving a 0.2 m near-upright band. The per-step reward is $r_k = 10\cdot\mathbf{1} - (h_k-2)^2 - 0.01\,x_\text{tip}^2 - \varepsilon\|\dot{\boldsymbol{\theta}}\|^2$, with episodes capped at 1,000 steps (50 s).
+The `InvertedDoublePendulum-v5` environment (MuJoCo/Gymnasium) has two rigid links of equal length $L_1 = L_2 = 0.6$ m on a sliding cart. The 6-dim physical state is $\mathbf{x} = [x,\theta_1,\theta_2,\dot{x},\dot{\theta}_1,\dot{\theta}_2]$; the 9-dim observation replaces raw angles with sin/cos encodings. The single action is cart force. Tip height $h = L_1\cos\theta_1 + L_2\cos(\theta_1+\theta_2)$ reaches a maximum of 1.2 m when both poles are vertical; Gymnasium terminates the episode when $h \leq 1.0$ m, leaving only a 0.2 m near-upright band between success and failure. The per-step reward is $r_k = 10\cdot\mathbf{1} - (h_k-2)^2 - 0.01\,x_\text{tip}^2 - \varepsilon\|\dot{\boldsymbol{\theta}}\|^2$, with episodes capped at 1,000 steps (50 s).
 
 ### 2.2  SINDy-C: Sparse Dynamics Identification with Control
 
@@ -28,7 +28,9 @@ SINDy [2] identifies discrete-time dynamics by regressing the state increment ag
 
 $$\mathbf{x}_{k+1} - \mathbf{x}_k = \underbrace{\Theta(\mathbf{x}_k,\, u_k)}_{\text{library}} \cdot \underbrace{\Xi}_{\text{sparse coefficients}}$$
 
-For control-affine systems (SINDy-C [3]), the input $u_k$ enters the library directly. The Sequentially Thresholded Least Squares (STLSQ) algorithm zeros coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ library over $n$ variables contains $\binom{n+d}{d}$ terms; for the IDP's 7-dim state-action vector, degree-2 gives 36 features and degree-3 gives 120 — a distinction that proved critical (§4.3).
+For control-affine systems (SINDy-C [3]), the input $u_k$ enters the library directly.[^ca] The Sequentially Thresholded Least Squares (STLSQ) algorithm zeros coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ library over $n$ variables contains $\binom{n+d}{d}$ terms; for the IDP's 7-dim state-action vector, degree-2 gives 36 features and degree-3 gives 120 — a distinction that proved critical (§4.3).
+
+[^ca]: A system is control-affine if the control input appears linearly in the dynamics: $\dot{\mathbf{x}} = f(\mathbf{x}) + g(\mathbf{x})\,u$, where $f$ and $g$ may be arbitrarily nonlinear in the state. Most mechanical systems driven by forces or torques — including the IDP — satisfy this property, since force enters Newton's second law linearly.
 
 ### 2.3  E-SINDy: Ensemble Uncertainty Quantification
 
@@ -38,7 +40,7 @@ Fitting $M{=}10$ independent SINDy models on 80% bootstrap subsamples yields a f
 
 The Dyna architecture [6] alternates cheap model-based rollouts with real data collection. In SINDy-RL [1], the surrogate is the E-SINDy ensemble and the planner is PPO [5]. Figure 2 shows the control loop; in SINDy-RL the Environment box is instantiated twice — as the E-SINDy surrogate during training and as real MuJoCo during data collection.
 
-![**Figure 2.** The RL control loop. In SINDy-RL, the Environment is instantiated as the E-SINDy surrogate for cheap policy training and as real MuJoCo for data collection and evaluation.](figures/rl_loop.svg.png)
+![**Figure 2.** The RL control loop. In SINDy-RL, the Environment is instantiated as the E-SINDy surrogate for cheap policy training and as real MuJoCo for data collection and evaluation.](figures/rl_loop.svg)
 
 A Schroeder multi-sine sweep [10] bootstraps the initial dataset $\mathcal{D}$. Each Dyna iteration refits E-SINDy on near-upright transitions, runs PPO for 100k surrogate steps (warm-started from the prior policy), then collects 4,000 real transitions. After convergence, the best checkpoint is distilled via behavioral cloning:
 
@@ -50,11 +52,13 @@ Perturbation augmentation [7] — adding Gaussian noise to expert states and re-
 
 ### 3.1  Baseline
 
-A standard PPO agent ([64,64] MLP tanh, 9,731 params, 8 parallel envs) is trained for 400,000 real steps, serving as the performance ceiling only — it is not used as a distillation teacher.
+A standard PPO agent ([64,64] MLP tanh, 9,731 params) is trained over 15,103 episodes (400,000 real steps), serving as the performance ceiling only — it is not used as a distillation teacher.
 
 ### 3.2  SINDy-RL Pipeline
 
-The pipeline in `notebooks/sindy-rl.ipynb` runs five stages: (1) Schroeder bootstrap — 300 episodes collecting 2,897 transitions; (2) E-SINDy fit — filter to near-upright states ($h > 1.10$ m), fit 10 degree-3 SINDy-C models on 80% subsamples, stack into a `FastEnsemblePredictor`; (3) surrogate PPO — 100k steps inside `EnsembleSurrogateEnv` with uncertainty penalty, early-stopped if mean episode length stays below 5 after 50k steps; (4) real data collection — 4,000 MuJoCo steps appended to $\mathcal{D}$; (5) repeat with warm-start, rolling back to best checkpoint if exploitation is detected. Distillation follows the loop: 50k expert transitions augmented 5× and fit with a degree-3 STLSQ polynomial on the 8-dim observation.
+The pipeline in `notebooks/sindy-rl.ipynb` runs five stages: (1) Schroeder bootstrap — 300 episodes collecting 2,897 transitions; (2) E-SINDy fit — filter to near-upright states ($h > 1.10$ m), fit 10 degree-3 SINDy-C models on 80% subsamples, stack into a `FastEnsemblePredictor`; (3) surrogate PPO — 100k steps inside `EnsembleSurrogateEnv` with uncertainty penalty, early-stopped if mean episode length stays below 5 after 50k steps; (4) real data collection — 4,000 MuJoCo steps appended to $\mathcal{D}$; (5) repeat with warm-start, rolling back to best checkpoint if exploitation is detected.
+
+Once the loop converges, the best checkpoint is optionally distilled into a sparse polynomial: 50k expert transitions collected from real MuJoCo, augmented 5× with Gaussian state perturbations, and fit with a degree-3 STLSQ polynomial on the 8-dim observation.
 
 ### 3.3  Metrics
 
@@ -86,12 +90,38 @@ Behavioral cloning from the best Dyna checkpoint produced a 165-term degree-3 po
 
 STLSQ retained all 165/165 policy terms, so the polynomial is compact but not sparse. It is still 59× smaller than the 9,731-param NN and exposes recognizable dominant terms: bias, proportional angle feedback, velocity damping, and inter-pole coupling. The remaining small cubic cross-terms appear to encode NN residuals rather than clean physical structure. The clearest result is data efficiency: 27,512 Dyna steps (14.5×) for the NN and 77,512 total steps (5.2×) for the distilled controller, with distillation reducing success from 75% to 65% in exchange for a closed-form policy.
 
-### 4.5  Summary, Code, and Next Steps
+### 4.5  Code Repository
 
-Compared with baseline PPO's 400,000 real steps for 100% success, SINDy-RL used 27,512 real Dyna steps for 75% success and the distilled 165-term polynomial used 77,512 total real steps for 65% success. Next steps are STLSQ threshold ablations and direct training in a structure-constrained surrogate. Code: **https://github.com/falconeaj1/ME_595**; key notebooks are `full-order-simulation.ipynb` and `sindy-rl.ipynb`; Professor Michelle Hickner added as collaborator.
+All code and results: **https://github.com/falconeaj1/ME_595**. Key notebooks: `full-order-simulation.ipynb` (baseline PPO) and `sindy-rl.ipynb` (SINDy-RL pipeline). Professor Michelle Hickner added as collaborator (GitHub: mhickner).
 
-\noindent\textbf{CRediT and AI-Assisted Work Disclosure.}
-Patrick Smith led SINDy-RL implementation, baseline PPO, distillation, and obstacle diagnosis. Andrew Falcone supported methodology, diagnostic experiments, visualization, and writing/review. Both authors contributed to interpretation. AI tools assisted with notebook organization, code drafting, debugging, and experiment iteration; the authors reviewed and executed the work and are responsible for the submitted analysis.
+### 5  Summary and Next Steps
+
+Compared with baseline PPO's 400,000 real steps for 100% success, SINDy-RL used 27,512 real Dyna steps for 75% success and the distilled 165-term polynomial used 77,512 total real steps for 65% success. Next steps are STLSQ threshold ablations and direct training in a structure-constrained surrogate.
+
+\noindent\rule{\linewidth}{0.4pt}
+
+\noindent\textbf{CRediT Statement} (\url{https://credit.niso.org})
+
+\begingroup
+\small
+\begin{tabular}{lll}
+\textbf{Role} & \textbf{Patrick Smith} & \textbf{Andrew Falcone} \\
+\hline
+Conceptualization          & Yes  & Yes        \\
+Data curation              & Yes  & Yes        \\
+Formal analysis            & Lead & Supporting \\
+Investigation              & Yes  & Yes        \\
+Methodology                & Lead & Supporting \\
+Software                   & Lead & Supporting \\
+Validation                 & Yes  & Yes        \\
+Visualization              & Yes  & Yes        \\
+Writing -- original draft  & Yes  & Yes        \\
+Writing -- review \& editing & Yes & Yes       \\
+\end{tabular}
+\endgroup
+
+\smallskip
+\noindent\small\textit{AI tool disclosure: Claude (Anthropic) assisted with code drafting, debugging, writing iteration, and figure generation. All analysis, results, and conclusions were reviewed and executed by the authors, who take full responsibility for the submitted work.}
 
 \newpage
 
