@@ -36,7 +36,7 @@ For control-affine systems (SINDy-C [3]), the input $u_k$ enters the library dir
 
 Fitting $M{=}10$ independent SINDy models on 80% bootstrap subsamples yields a free uncertainty estimate [4]: at each step, `predict(x, u)` returns $(\mu_\Delta, \sigma_\Delta)$ across ensemble members. High $\sigma_\Delta$ signals extrapolation beyond the training distribution. Following Zolman et al. §3.5 [1], we convert this into an active pessimistic penalty: surrogate reward is reduced by $\kappa\cdot\text{mean}(\sigma_\Delta)$ per step ($\kappa=5.0$), steering PPO away from high-uncertainty states.
 
-### 2.4  Dyna-Style MBRL and Behavioral Cloning
+### 2.4  Dyna-Style Model-Based Reinforcement Learning and Behavioral Cloning
 
 The Dyna architecture [6] alternates cheap model-based rollouts with real data collection. In SINDy-RL [1], the surrogate is the E-SINDy ensemble and the planner is PPO [5]. Figure 2 shows the control loop; in SINDy-RL the Environment box is instantiated twice — as the E-SINDy surrogate during training and as real MuJoCo during data collection.
 
@@ -88,7 +88,7 @@ Behavioral cloning from the best Dyna checkpoint produced a 165-term degree-3 po
 
 ![**Figure 4.** Method comparison. Success rate and mean episode length for baseline PPO, SINDy-RL NN, and the distilled sparse polynomial.](figures/fig6_comparison.png)
 
-STLSQ retained all 165/165 policy terms, so the polynomial is compact but not sparse. It is still 59× smaller than the 9,731-param NN and exposes recognizable dominant terms: bias, proportional angle feedback, velocity damping, and inter-pole coupling. The remaining small cubic cross-terms appear to encode NN residuals rather than clean physical structure. The clearest result is data efficiency: 27,512 Dyna steps (14.5×) for the NN and 77,512 total steps (5.2×) for the distilled controller, with distillation reducing success from 75% to 65% in exchange for a closed-form policy.
+STLSQ retained all 165/165 policy terms, so the polynomial is compact but not sparse. The dynamics surrogate is similarly dense: 690 out of 720 possible coefficients (120 features × 6 state dimensions) are nonzero, confirming that the IDP requires the full expressiveness of a degree-3 polynomial. The distilled policy is still 59× smaller than the 9,731-param NN and exposes recognizable dominant terms: bias, proportional angle feedback, velocity damping, and inter-pole coupling. The remaining small cubic cross-terms appear to encode NN residuals rather than clean physical structure. The clearest result is data efficiency: 27,512 Dyna steps (14.5×) for the NN and 77,512 total steps (5.2×) for the distilled controller, with distillation reducing success from 75% to 65% in exchange for a closed-form policy.
 
 ### 4.5  Code Repository
 
