@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-70 50 750 230" width="750" height="230">
+
+  <defs>
+    <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4B2E83"/>
+    </marker>
+    <marker id="arr-gray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#555555"/>
+    </marker>
+    <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#B85C1A"/>
+    </marker>
+  </defs>
+
+  <rect x="-70" y="50" width="750" height="230" fill="white"/>
+
+  <!-- ══ AGENT BOX  x=30–200, y=88–136  ══════════════════════════════════
+       side midpoints: right(200,112)  left(30,112)
+       gray enters left y=92, orange enters left y=133                   -->
+  <rect x="30" y="88" width="170" height="48" rx="8"
+        fill="#F0EDF7" stroke="#4B2E83" stroke-width="2"/>
+  <text x="115" y="80" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="15" font-weight="700" fill="#4B2E83">Agent</text>
+  <text x="115" y="116" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="13" fill="#4B2E83">u<tspan baseline-shift="-25%" font-size="9">n</tspan> = Θ<tspan baseline-shift="-25%" font-size="9">a</tspan>(x<tspan baseline-shift="-25%" font-size="9">n</tspan>) Ξ<tspan baseline-shift="-25%" font-size="9">a</tspan></text>
+  <text x="115" y="150" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="11" font-style="italic" fill="#4B2E83">Distilled Policy</text>
+
+  <!-- ══ ENVIRONMENT BOX  x=480–650, y=88–146  ═══════════════════════════
+       center y=117; right exit (650,117)
+       purple enters left y=97 (20 above center), gray enters left y=137 (20 below center) -->
+  <rect x="480" y="88" width="170" height="58" rx="8"
+        fill="#FDF8EC" stroke="#8B6914" stroke-width="2"/>
+  <text x="565" y="80" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="15" font-weight="700" fill="#8B6914">Environment</text>
+  <text x="565" y="106" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#8B6914">x<tspan baseline-shift="-25%" font-size="8.5">n+1</tspan> = x<tspan baseline-shift="-25%" font-size="8.5">n</tspan> +</text>
+  <text x="565" y="123" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#8B6914">Θ<tspan baseline-shift="-25%" font-size="8.5">e</tspan>(x<tspan baseline-shift="-25%" font-size="8.5">n</tspan>, u<tspan baseline-shift="-25%" font-size="8.5">n</tspan>) Ξ<tspan baseline-shift="-25%" font-size="8.5">e</tspan></text>
+  <text x="565" y="160" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="11" font-style="italic" fill="#8B6914">Reduced Order Model</text>
+
+  <!-- ══ REWARD BOX  x=83–313, y=174–224  ═══════════════════════════════════
+       Widened left to x=83 (width=230) to fit formula on one line.
+       Center (198,199).  Right (313,199).
+       purple enters right y=182, orange exits left y=195, gray enters right y=217 -->
+  <rect x="83" y="174" width="230" height="50" rx="8"
+        fill="#FEF3E6" stroke="#B85C1A" stroke-width="2"/>
+  <text x="198" y="166" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="15" font-weight="700" fill="#B85C1A">Reward</text>
+  <text x="198" y="193" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="11.5" fill="#B85C1A">r = 10 − 0.01x<tspan baseline-shift="-25%" font-size="8">tip</tspan><tspan baseline-shift="35%" font-size="8">2</tspan></text>
+  <text x="198" y="209" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="11.5" fill="#B85C1A">− (h<tspan baseline-shift="-25%" font-size="8">tip</tspan> − 2)<tspan baseline-shift="35%" font-size="8">2</tspan> − ε||θ̇||<tspan baseline-shift="35%" font-size="8">2</tspan></text>
+
+  <!-- ══ ARROW 1: action u_n ══════════════════════════════════════════════
+       Agent right-mid (200,112) → right to x=369 → up to y=92
+       → right into Env left top-⅓ (480,92)
+       Label above the bottom horizontal segment (y=112, x=200–369)      -->
+  <path d="M 200,112 H 369 V 102 H 478"
+        stroke="#4B2E83" stroke-width="1.8" fill="none"
+        marker-end="url(#arr-purple)"/>
+  <text x="285" y="102" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#4B2E83">action u<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
+
+  <!-- ══ PURPLE BRANCH → REWARD top-⅓ right edge ═════════════════════════
+       Junction at (369,112); extend vertical DOWN to y=182, then left
+       into Reward right edge top-⅓  (313,182)                           -->
+  <circle cx="369" cy="112" r="4" fill="#4B2E83"/>
+  <path d="M 369,112 V 187 H 315"
+        stroke="#4B2E83" stroke-width="1.8" fill="none"
+        marker-end="url(#arr-purple)"/>
+
+  <!-- ══ NEW STATE x_{n+1} ════════════════════════════════════════════════
+       Leaves from Env right-mid (650,112) → jogs right → drops below reward
+       → left under reward → up left side → Agent left top-⅓
+       Gray vertical at x=-58 sits outside the orange vertical at x=-38   -->
+  <path d="M 650,117 H 670 V 262 H -58 V 102 H 30"
+        stroke="#555555" stroke-width="1.5" fill="none"
+        marker-end="url(#arr-gray)"/>
+  <!-- junction dot at (670,217) on gray vertical where branch to Reward splits off
+       y=217: bottom-⅓ of reward right edge (174+50*2/3=207.3 → 217)         -->
+  <circle cx="670" cy="212" r="4" fill="#555555"/>
+  <!-- branch: (670,212) ──←── Reward right-side bottom-⅓ (313,212) -->
+  <line x1="670" y1="212" x2="315" y2="212"
+        stroke="#555555" stroke-width="1.5"
+        marker-end="url(#arr-gray)"/>
+
+  <!-- ══ LOOPBACK: reward branch → Env left bot-⅓ (480,133) ══════════════
+       Junction at (415,217) on the reward branch (60 px left of env left).
+       V up to y=133, then H right into env left bot-⅓.                 -->
+  <circle cx="415" cy="212" r="4" fill="#555555"/>
+  <path d="M 415,212 V 132 H 479"
+        stroke="#555555" stroke-width="1.5" fill="none"
+        marker-end="url(#arr-gray)"/>
+  <!-- label above the horizontal segment (415,132)→(479,132) -->
+  <text x="447" y="122" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#555555">state x<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
+  <!-- label above the bottom gray horizontal, 70 px left of right vertical -->
+  <text x="600" y="252" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#555555">new state x<tspan baseline-shift="-25%" font-size="8.5">n+1</tspan></text>
+
+  <!-- ══ ARROW 3: reward r_n ══════════════════════════════════════════════
+       Reward left-mid (255,275) → left → up → Agent left bottom-⅓
+       Vertical at x=-38 (was x=22; +60 px gap from agent left edge)      -->
+  <path d="M 83,199 H -38 V 123 H 30"
+        stroke="#B85C1A" stroke-width="1.8" fill="none"
+        marker-end="url(#arr-orange)"/>
+  <!-- label above the bottom horizontal segment, centered on (-38,83) -->
+  <text x="22" y="189" text-anchor="middle"
+        font-family="'Helvetica Neue',Arial,sans-serif"
+        font-size="12" fill="#B85C1A">reward r<tspan baseline-shift="-25%" font-size="8.5">n</tspan></text>
+
+</svg>
