@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="180" font-family="Georgia, serif">
+
+  <rect width="520" height="180" fill="white"/>
+
+  <!-- panel separator -->
+  <line x1="260" y1="6" x2="260" y2="174" stroke="#e8e8e8" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- ======= LEFT: DYNAMICS SINDY ======= -->
+  <text x="130" y="20" font-size="11" font-weight="bold" fill="#333" text-anchor="middle"
+        font-family="Arial,sans-serif">Dynamics SINDy</text>
+
+  <!-- column labels: Θ(x,u) -->
+  <text x="84"  y="36" font-size="8" fill="#666" text-anchor="middle">1</text>
+  <text x="94"  y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">x</text>
+  <text x="104" y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">x²</text>
+  <text x="140" y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">x³u</text>
+
+  <!-- column labels: Ξ_dyn (orange) -->
+  <text x="176" y="36" font-size="8" fill="#c9703a" text-anchor="middle">ξ₁</text>
+  <text x="186" y="36" font-size="8" fill="#c9703a" text-anchor="middle">ξ₂</text>
+  <text x="196" y="36" font-size="8" fill="#c9703a" text-anchor="middle">ξ₃</text>
+  <text x="232" y="36" font-size="8" fill="#c9703a" text-anchor="middle">ξ₆</text>
+
+  <!-- ΔX: neutral brackets + 3 bars, h=90 -->
+  <path d="M24,42 L18,42 L18,132 L24,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <path d="M52,42 L58,42 L58,132 L52,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <rect x="24" y="42" width="8" height="90" fill="#b8b8b8" rx="1"/>
+  <rect x="34" y="42" width="8" height="90" fill="#b8b8b8" rx="1"/>
+  <rect x="44" y="42" width="8" height="90" fill="#b8b8b8" rx="1"/>
+
+  <!-- dim label: ΔX -->
+  <text x="38" y="144" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">N × 6</text>
+
+  <!-- = -->
+  <text x="66" y="95" font-size="18" fill="#555" text-anchor="middle">=</text>
+
+  <!-- Θ(x,u): neutral brackets + 3 bars + ··· + 1 bar, h=90 -->
+  <path d="M80,42 L74,42 L74,132 L80,132"     fill="none" stroke="#888" stroke-width="1.8"/>
+  <path d="M144,42 L150,42 L150,132 L144,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <rect x="80"  y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <rect x="90"  y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <rect x="100" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <text x="122" y="95" font-size="15" font-weight="bold" fill="#aaa" text-anchor="middle"
+        font-family="Arial,sans-serif">···</text>
+  <rect x="136" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+
+  <!-- dim label: Θ(x,u) -->
+  <text x="112" y="144" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">N × 120</text>
+
+  <!-- · -->
+  <text x="158" y="95" font-size="18" fill="#555" text-anchor="middle">·</text>
+
+  <!-- Ξ_dyn: orange brackets + 3 bars + ··· + 1 bar, h=65 -->
+  <path d="M172,42 L166,42 L166,107 L172,107" fill="none" stroke="#c9703a" stroke-width="1.8"/>
+  <path d="M236,42 L242,42 L242,107 L236,107" fill="none" stroke="#c9703a" stroke-width="1.8"/>
+  <rect x="172" y="42" width="8" height="65" fill="#d4834a" rx="1"/>
+  <rect x="182" y="42" width="8" height="65" fill="#d4834a" rx="1"/>
+  <rect x="192" y="42" width="8" height="65" fill="#d4834a" rx="1"/>
+  <text x="214" y="82" font-size="14" font-weight="bold" fill="#e0a07a" text-anchor="middle"
+        font-family="Arial,sans-serif">···</text>
+  <rect x="228" y="42" width="8" height="65" fill="#d4834a" rx="1"/>
+
+  <!-- dim labels: Ξ_dyn -->
+  <text x="204" y="119" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">120 × 6</text>
+  <text x="204" y="130" font-size="7" text-anchor="middle" font-family="Arial,sans-serif"><tspan fill="#333">690</tspan><tspan fill="#bbb">/720</tspan><tspan fill="#333"> ≠ 0</tspan></text>
+
+  <!-- bottom equation (left) -->
+  <text x="38"  y="164" font-size="11" fill="#444" text-anchor="middle" font-style="italic">ΔX<tspan dy="-4" font-size="7">k</tspan></text>
+  <text x="66"  y="164" font-size="11" fill="#666" text-anchor="middle">=</text>
+  <text x="112" y="164" font-size="10" fill="#444" text-anchor="middle" font-style="italic">Θ<tspan dy="3" font-size="7" font-style="normal">dyn</tspan><tspan dy="-7" font-size="7" font-style="italic">k</tspan></text>
+  <text x="158" y="164" font-size="11" fill="#666" text-anchor="middle">·</text>
+  <text x="204" y="164" font-size="12" fill="#c9703a" text-anchor="middle" font-style="italic">Ξ<tspan dy="3" font-size="7" font-style="normal">dyn</tspan><tspan dy="-7" font-size="7" font-style="italic">k</tspan></text>
+
+  <!-- ======= RIGHT: POLICY DISTILLATION ======= -->
+  <text x="394" y="20" font-size="11" font-weight="bold" fill="#333" text-anchor="middle"
+        font-family="Arial,sans-serif">Policy Distillation</text>
+
+  <!-- column labels: Θ(obs): bar1=1, bar2=x, [···], bar3=sinθ, [···], bar4=θ₂ẋ² -->
+  <text x="362" y="36" font-size="8" fill="#666" text-anchor="middle">1</text>
+  <text x="372" y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">x</text>
+  <text x="398" y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">sinθ</text>
+  <text x="426" y="36" font-size="8" fill="#666" text-anchor="middle" font-style="italic">θ₂ẋ²</text>
+
+  <!-- column label: Ξ_dist (purple) -->
+  <text x="462" y="36" font-size="8" fill="#5a3f90" text-anchor="middle">ξ₁</text>
+
+  <!-- U: neutral brackets + 1 bar, h=90 -->
+  <path d="M322,42 L316,42 L316,132 L322,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <path d="M330,42 L336,42 L336,132 L330,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <rect x="322" y="42" width="8" height="90" fill="#b8b8b8" rx="1"/>
+
+  <!-- dim label: U -->
+  <text x="326" y="144" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">N × 1</text>
+
+  <!-- = -->
+  <text x="344" y="95" font-size="18" fill="#555" text-anchor="middle">=</text>
+
+  <!-- Θ(obs): brackets + bar1 + bar2 + ··· + bar3(sinθ) + ··· + bar4, h=90 -->
+  <path d="M358,42 L352,42 L352,132 L358,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <path d="M430,42 L436,42 L436,132 L430,132" fill="none" stroke="#888" stroke-width="1.8"/>
+  <rect x="358" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <rect x="368" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <text x="385" y="95" font-size="15" font-weight="bold" fill="#aaa" text-anchor="middle"
+        font-family="Arial,sans-serif">···</text>
+  <rect x="394" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+  <text x="412" y="95" font-size="15" font-weight="bold" fill="#aaa" text-anchor="middle"
+        font-family="Arial,sans-serif">···</text>
+  <rect x="422" y="42" width="8" height="90" fill="#7a8fa0" rx="1"/>
+
+  <!-- dim label: Θ(obs) -->
+  <text x="394" y="144" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">N × 165</text>
+
+  <!-- · -->
+  <text x="444" y="95" font-size="18" fill="#555" text-anchor="middle">·</text>
+
+  <!-- Ξ_dist: purple brackets + 1 bar, h=55 -->
+  <path d="M458,42 L452,42 L452,97 L458,97"   fill="none" stroke="#5a3f90" stroke-width="1.8"/>
+  <path d="M466,42 L472,42 L472,97 L466,97"   fill="none" stroke="#5a3f90" stroke-width="1.8"/>
+  <rect x="458" y="42" width="8" height="55" fill="#6b4fa0" rx="1"/>
+
+  <!-- dim labels: Ξ_dist -->
+  <text x="462" y="109" font-size="8" fill="#aaa" text-anchor="middle" font-family="monospace">165 × 1</text>
+  <text x="462" y="120" font-size="7" text-anchor="middle" font-family="Arial,sans-serif"><tspan fill="#333">160</tspan><tspan fill="#bbb">/165</tspan><tspan fill="#333"> ≠ 0</tspan></text>
+
+  <!-- bottom equation (right) -->
+  <text x="326" y="164" font-size="11" fill="#444" text-anchor="middle" font-style="italic">U</text>
+  <text x="344" y="164" font-size="11" fill="#666" text-anchor="middle">=</text>
+  <text x="394" y="164" font-size="10" fill="#444" text-anchor="middle" font-style="italic">Θ<tspan dy="3" font-size="8" font-style="italic">π</tspan></text>
+  <text x="444" y="164" font-size="11" fill="#666" text-anchor="middle">·</text>
+  <text x="462" y="164" font-size="12" fill="#5a3f90" text-anchor="middle" font-style="italic">Ξ<tspan dy="3" font-size="8" font-style="italic">π</tspan></text>
+
+</svg>

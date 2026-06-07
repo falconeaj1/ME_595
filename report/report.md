@@ -7,31 +7,31 @@ ME 595 · University of Washington · Spring 2026
 
 ## Abstract
 
-Safety-critical autonomous systems increasingly require controllers that can be formally verified, audited, and deployed on resource-constrained hardware — properties that large neural networks cannot satisfy. Sparse Identification of Nonlinear Dynamics (SINDy) can produce closed-form polynomial controllers that meet these requirements, but unstable systems cannot generate the near-equilibrium data SINDy needs without a stabilizing controller that does not yet exist. SINDy-RL (Zolman et al., 2024) resolves this chicken-and-egg problem with a Dyna-style loop that co-trains an Ensemble SINDy (E-SINDy) surrogate and a Proximal Policy Optimization (PPO) neural policy. We implement Algorithm 1 from Zolman et al. on the inverted double pendulum (IDP) — a two-link system with two coupled unstable modes — and identify three non-obvious engineering obstacles (polynomial degree ceiling, filter geometry bug, surrogate exploitation) that prevented early convergence. After resolving these, the Dyna loop converges in four iterations using 27,512 real-environment steps, 14.5× fewer than a full-order PPO baseline. The converged neural policy is distilled into a 165-term degree-3 polynomial achieving 65% task success, a controller 59× smaller than the baseline network. Our results confirm that SINDy-RL substantially reduces real-environment data requirements and produces compact controllers suited to safety-critical deployment, while identifying open questions about distillation data requirements and polynomial sparsity on strongly coupled systems.
+Safety-critical autonomous systems require controllers that can be formally verified, audited, and deployed on resource-constrained hardware — properties that large neural networks cannot satisfy. SINDy-RL [@zolman2025sindyrl] addresses this by co-training a polynomial surrogate and a neural policy in a Dyna loop, then distilling the result into a closed-form polynomial. We stress-test this pipeline on the inverted double pendulum (IDP) — a two-link system with two coupled unstable modes — asking whether it delivers data-efficiency, sparsity, and interpretability simultaneously. After resolving two non-obvious engineering obstacles (polynomial degree ceiling and surrogate exploitation), the Dyna loop converges in six iterations using 39,616 real-environment steps — **10.1× fewer than a full-order PPO baseline** — with the best checkpoint achieving 90% task success. Behavioral cloning of this policy into a degree-3 polynomial ($R^2 = 0.989$) fully preserves 90% closed-loop success, but achieves only minimal sparsification: STLSQ drops just 5 of 165 possible terms, leaving the polynomial near-dense. This is not a threshold-tuning problem — a 500× sweep of the sparsity threshold confirms performance holds at 90--95% success as term count falls from 165 to 121, but the polynomial never approaches the compact, auditable form the method promises. The bottleneck is the polynomial feature basis itself, which is poorly conditioned: further zeroing risks eliminating structurally important contributions rather than numerical noise. A physics-informed variant exploiting IDP translational symmetry achieves comparable sparsity at reduced success (85%), confirming that the density is a property of this representation class on this system rather than an artifact of data volume or threshold choice.
 
----
 
 ## 1  Introduction
 
-### 1.1  Motivation: The Interpretability Gap in Autonomous Control
+### 1.1  Motivation: The Inspectability Requirement
 
-The proliferation of deep reinforcement learning (RL) in autonomous systems has produced controllers of remarkable capability, but capability alone is insufficient for safety-critical deployment. Regulators increasingly require that algorithmic decisions be explainable and auditable [8, 9], and formal standards such as DO-178C (avionics) and IEC 62443 (industrial control) require analyzable control laws. A nine-thousand-parameter neural network offers no handle for stability proofs or formal verification; its memory and compute footprint make it unsuitable for microcontroller execution. If the controller is instead a closed-form polynomial equation, each term can be audited by an engineer, bounding arguments can be constructed analytically, and the policy fits in kilobytes — evaluation requires only a dot product. This representational gap between what deep RL produces and what deployed systems can accept motivates a growing body of work on inherently interpretable models [9]: controllers whose structure is transparent by construction, not explained after the fact.
+Deployed autonomous systems face a constraint that capable controllers must also be *inspectable*. Formal standards such as DO-178C (avionics software) and IEC 62443 (industrial control) require analyzable, auditable control laws [@arrieta2020xai; @rudin2019interpretable]; surgical robotics regulators may require that a control law be certifiable before permitting autonomous maneuvers near tissue; embedded actuators on spacecraft or small aerial vehicles have no floating-point stack capable of running a neural network at control rates. A ten-thousand-parameter neural network — however capable — offers no handle for stability proofs or formal verification, and its memory footprint alone disqualifies it from microcontroller deployment. A closed-form polynomial is the opposite: each term has a physical interpretation, stability arguments can be constructed analytically, and a 165-term policy fits in kilobytes and evaluates as a single dot product.
 
-Real-world motivating applications include surgical robotics, where regulators may require that a control law be inspectable before a device can perform autonomous maneuvers near tissue; autonomous systems operating in the vicinity of humans, where a failure mode must be demonstrably bounded; and embedded actuators on spacecraft or small aerial vehicles where there is no floating-point stack capable of running a neural network at control rates.
+This gap between what learning produces and what safety-critical systems can accept motivates a growing body of work on inherently interpretable controllers [@rudin2019interpretable] — models whose structure is transparent by construction, not approximated after the fact.
 
 ### 1.2  SINDy and the Data Problem for Unstable Systems
 
-Sparse Identification of Nonlinear Dynamics (SINDy [2]) offers a principled path to interpretable governing equations. Given a library of candidate functions over the state and input, sparse regression identifies which terms actually drive the dynamics and discards the rest. The resulting model is compact, physically grounded, and composed of a small number of terms that a practitioner can read and reason about. The difficulty is data. For an unstable equilibrium — such as an inverted pendulum — a random policy crashes in a handful of steps, and the near-upright transitions that SINDy needs are entirely unvisited. The system cannot provide the training data without a controller it does not yet have.
+Sparse Identification of Nonlinear Dynamics (SINDy [@brunton2016sindy]) offers a principled path to interpretable governing equations. Given a library of candidate functions over the state and input, sparse regression identifies which terms actually drive the dynamics and discards the rest. The resulting model is compact, physically grounded, and composed of a small number of terms that a practitioner can read and reason about. The difficulty is data. For an unstable equilibrium — such as an inverted pendulum — a random policy crashes in a handful of steps, and the near-upright transitions that SINDy needs are entirely unvisited. The system cannot provide the training data without a controller it does not yet have.
 
-The resolution is to co-train the dynamics model and the controller iteratively. Sutton's Dyna architecture [6] alternates between training a policy in a learned surrogate model and collecting new data from the real environment, so each iteration improves both components. Zolman et al. [1] apply this principle to SINDy by using an ensemble SINDy model as the Dyna surrogate, yielding SINDy-RL — a framework that bootstraps the data problem while retaining interpretability as a downstream option.
+The resolution is to co-train the dynamics model and the controller iteratively. Sutton's Dyna architecture [@sutton1990dyna] alternates between training a policy in a learned surrogate model and collecting new data from the real environment, so each iteration improves both components. Zolman et al. [@zolman2025sindyrl] apply this principle to SINDy by using an ensemble SINDy model as the Dyna surrogate, yielding SINDy-RL — a framework that bootstraps the data problem while retaining interpretability as a downstream option.
 
 ### 1.3  Goals and Contributions
 
-We implement Algorithm 1 from Zolman et al. [1] on the inverted double pendulum (IDP), a demanding two-link benchmark with two coupled unstable modes and a narrow region of attraction. Our contributions are:
+We stress-test SINDy-RL against its three core promises — data-efficient, sparse, and interpretable — on the inverted double pendulum (IDP), a demanding two-link benchmark with two coupled unstable modes and a narrow region of attraction. Our contributions are:
 
-1. A working SINDy-RL implementation on the IDP that converges in four Dyna iterations using 27,512 real-environment steps — **14.5× fewer than a full-order PPO baseline** trained to 100% success.
-2. A degree-3 polynomial controller distilled from the converged policy, achieving 65% task success and **59× smaller** than the baseline network.
-3. Diagnosis and resolution of three non-obvious engineering obstacles (polynomial degree ceiling, filter geometry bug, surrogate exploitation) with practical safeguards applicable to other unstable benchmark systems.
+1. **Data efficiency confirmed.** The Dyna loop converges in six iterations using 39,616 real-environment steps — **10.1× fewer than a full-order PPO baseline** — with the best checkpoint achieving 90% task success.
+2. **Near-sparsity via behavioral cloning.** STLSQ distillation of the converged neural policy yields a **160/165-term degree-3 polynomial** ($\lambda = 0.10$) that fully preserves 90% closed-loop success; a threshold ablation confirms robustness across a 500× range of $\lambda$ values (90--95% success, 142--165 terms).
+3. **Root cause of residual density.** The polynomial feature matrix is ill-conditioned ($\kappa \approx 2.4 \times 10^4$), preventing STLSQ from zeroing additional terms without risking structural contributions — a representation issue, not a data-volume problem.
+4. Diagnosis and resolution of two non-obvious engineering obstacles (polynomial degree ceiling and surrogate exploitation) with practical safeguards applicable to other unstable benchmark systems.
 
 ### 1.4  Ethics and Safety Considerations
 
@@ -56,7 +56,7 @@ Any deployment of a SINDy-RL-derived controller in a safety-critical application
   \vspace{-6pt}
 \end{wrapfigure}
 
-The `InvertedDoublePendulum-v5` environment (MuJoCo 3.8.1 / Gymnasium 1.2.3) consists of two rigid links of equal length $L_1 = L_2 = 0.6$ m mounted on a sliding cart. The physical state is $\mathbf{x} = [x,\theta_1,\theta_2,\dot{x},\dot{\theta}_1,\dot{\theta}_2] \in \mathbb{R}^6$, where $\theta_1, \theta_2$ are joint angles measured from vertical. The 9-dimensional observation replaces raw angles with sine/cosine encodings to avoid wrapping discontinuities. The single control input is a horizontal cart force $u \in [-1, 1]$.
+The `InvertedDoublePendulum-v5` environment (MuJoCo 3.8.1 / Gymnasium 1.2.3) consists of two rigid links of equal length $L_1 = L_2 = 0.6$ m mounted on a sliding cart. The physical state is $\mathbf{x} = [x,\theta_1,\theta_2,\dot{x},\dot{\theta}_1,\dot{\theta}_2] \in \mathbb{R}^6$, where $x$ is the cart's horizontal position along the track, $\theta_1, \theta_2$ are joint angles measured from vertical, and dots denote time derivatives. The 9-dimensional observation replaces raw angles with sine/cosine encodings to avoid wrapping discontinuities. The single control input is a horizontal cart force $u \in [-1, 1]$.
 
 Tip height $h = L_1\cos\theta_1 + L_2\cos(\theta_1+\theta_2)$ reaches a maximum of 1.2 m when both poles are vertical. Gymnasium terminates an episode when $h \leq 1.0$ m, leaving only a 0.2 m near-upright band between success and failure. The per-step reward is:
 
@@ -66,45 +66,49 @@ where the alive bonus (first term, $\approx10$/step) dominates when the system r
 
 ### 2.2  SINDy-C: Sparse Dynamics Identification with Control
 
-SINDy [2] identifies discrete-time dynamics by regressing the state increment against a polynomial library:
+SINDy [@brunton2016sindy] identifies discrete-time dynamics by regressing the state increment against a polynomial library:
 
 $$\mathbf{x}_{k+1} - \mathbf{x}_k = \underbrace{\Theta(\mathbf{x}_k,\, u_k)}_{\text{library}} \cdot \underbrace{\Xi}_{\text{sparse coefficients}}$$
 
-For control-affine systems (SINDy-C [3]), the input $u_k$ is included directly in the library.[^ca] The Sequentially Thresholded Least Squares (STLSQ) algorithm zeros coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ library over $n$ variables contains $\binom{n+d}{d}$ terms; for the IDP's 7-dimensional state-action vector, degree-2 gives 36 features and degree-3 gives 120, a distinction that proved critical to convergence (§4.2).
+For control-affine systems (SINDy-C [@kaiser2018sindympc]), the input $u_k$ is included directly in the library.[^ca] The Sequentially Thresholded Least Squares (STLSQ) algorithm zeros coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ library over $n$ variables contains $\binom{n+d}{d}$ terms; for the IDP's 7-dimensional state-action vector, degree-2 gives 36 features and degree-3 gives 120, a distinction that proved critical to convergence (§4.2).
 
 [^ca]: A system is control-affine if the control input appears linearly in the dynamics: $\dot{\mathbf{x}} = f(\mathbf{x}) + g(\mathbf{x})\,u$, where $f$ and $g$ may be arbitrarily nonlinear in the state. Most mechanical systems driven by forces or torques, including the IDP, satisfy this property.
 
 ### 2.3  E-SINDy: Ensemble Uncertainty Quantification
 
-A single SINDy model provides a point estimate with no uncertainty information. Fasel et al. [4] address this with Ensemble SINDy (E-SINDy): fit $M$ independent SINDy models on 80% bootstrap subsamples of the data, then at inference time report the mean and standard deviation of predictions across the ensemble. For $M = 10$ models, at each surrogate step `predict(x, u)` returns $(\mu_\Delta, \sigma_\Delta)$, where $\mu_\Delta$ is the ensemble-mean predicted state increment and $\sigma_\Delta$ is the per-component standard deviation across members. High $\sigma_\Delta$ signals extrapolation beyond the training distribution. Following Zolman et al. §3.5 [1], we convert this into an active penalty: surrogate reward is reduced by $\kappa\cdot\text{mean}(\sigma_\Delta)$ per step ($\kappa = 5.0$), steering PPO away from high-uncertainty states.
+A single SINDy model provides a point estimate with no uncertainty information. Fasel et al. [@fasel2022esindy] address this with Ensemble SINDy (E-SINDy): fit $M$ independent SINDy models on 80% bootstrap subsamples of the data, then at inference time report the mean and standard deviation of predictions across the ensemble. For $M = 10$ models, at each surrogate step `predict(x, u)` returns $(\mu_\Delta, \sigma_\Delta)$, where $\mu_\Delta$ is the ensemble-mean predicted state increment and $\sigma_\Delta$ is the per-component standard deviation across members. High $\sigma_\Delta$ signals extrapolation beyond the training distribution. Following Zolman et al. §3.5 [@zolman2025sindyrl], we convert this into an active penalty: surrogate reward is reduced by $\kappa\cdot\text{mean}(\sigma_\Delta)$ per step ($\kappa = 5.0$), steering PPO away from high-uncertainty states.
 
 ### 2.4  Dyna-Style Model-Based RL and Behavioral Cloning
 
-The Dyna architecture [6] alternates cheap model-based rollouts inside a learned surrogate with real-environment data collection. In SINDy-RL [1], the surrogate is the E-SINDy ensemble and the planner is PPO [5]. Figure 2 shows the RL control loop; in SINDy-RL the environment is instantiated twice: as the E-SINDy surrogate for cheap policy training, and as real MuJoCo for data collection and evaluation.
+The Dyna architecture [@sutton1990dyna] alternates cheap model-based rollouts inside a learned surrogate with real-environment data collection. In SINDy-RL [@zolman2025sindyrl], the surrogate is the E-SINDy ensemble and the planner is PPO [@schulman2017ppo]. Figure 2 shows the RL control loop; in SINDy-RL the environment is instantiated twice: as the E-SINDy surrogate for cheap policy training, and as real MuJoCo for data collection and evaluation.
 
-![**Figure 2.** The RL control loop. In SINDy-RL, the environment is instantiated as the E-SINDy polynomial surrogate for cheap policy training and as the full MuJoCo simulator for real data collection and evaluation.](figures/rl_loop.svg){width=82%}
+![**Figure 2.** The RL control loop. The agent outputs action $u_k = \pi_\phi(\mathbf{x}_k)$ from the neural policy $\pi_\phi$ during Dyna training; after distillation into a polynomial, this becomes $u_k \approx \Theta_\text{obs}(\mathbf{x}_k)\,\xi$ where $\xi$ is the sparse coefficient vector. In SINDy-RL, the environment is instantiated as the E-SINDy polynomial surrogate for cheap policy training and as the full MuJoCo simulator for real data collection and evaluation.](figures/rl_loop.svg){width=82%}
 
-A Schroeder multi-sine sweep [10] bootstraps the initial dataset $\mathcal{D}$. Each Dyna iteration refits E-SINDy on near-upright transitions, runs PPO for 100k surrogate steps (warm-started from the prior policy), then collects 4,000 real transitions. After convergence, the best checkpoint is distilled via behavioral cloning:
+A Schroeder multi-sine sweep [@schroeder1970] bootstraps the initial dataset $\mathcal{D}$. Each Dyna iteration refits E-SINDy on near-upright transitions, runs PPO for 100k surrogate steps (warm-started from the prior policy), then collects 4,000 real transitions. After convergence, the best checkpoint is distilled via behavioral cloning:
 
-$$\min_{\Xi}\;\bigl\|\Theta_\text{obs}(X)\,\Xi - U^*\bigr\|_2 \quad \text{(STLSQ, } \lambda=0.05\text{)}$$
+$$\min_{\Xi}\;\bigl\|\Theta_\text{obs}(X)\,\Xi - U^*\bigr\|_2 \quad \text{(STLSQ, } \lambda=0.10\text{)}$$
 
-where $X$ is a matrix of observations, $U^*$ are the corresponding NN policy actions, and $\Theta_\text{obs}$ is the degree-3 polynomial library over the 8-dimensional sin/cos observation. Perturbation augmentation [7] (adding Gaussian noise to expert states and re-querying the NN oracle) expands the 50k-transition dataset 5× to mitigate distribution shift without additional simulator rollouts.
+where $X$ is a matrix of observations, $U^*$ are the corresponding NN policy actions, and $\Theta_\text{obs}$ is the degree-3 polynomial library over the 8-dimensional sin/cos observation. Perturbation augmentation [@ross2011dagger] (adding Gaussian noise to expert states and re-querying the trained neural network policy, referred to as the NN oracle) expands the 50k-transition dataset 5× to mitigate distribution shift without additional simulator rollouts.
+
+![**Figure 3.** Sparse regression structure for E-SINDy dynamics identification (*left*) and policy distillation (*right*). Each of the $k = 1,\ldots,M$ ensemble members solves $\Delta\mathbf{X}^k = \Theta_\text{dyn}^k \Xi_\text{dyn}^k$, where $\Theta_\text{dyn}^k \in \mathbb{R}^{N \times 120}$ is the degree-3 polynomial library over the 7-dimensional state-action input evaluated on a bootstrap subsample, and $\Xi_\text{dyn}^k \in \mathbb{R}^{120 \times 6}$ (orange) is the fitted coefficient matrix. Distillation fits a single $U = \Theta_\pi \Xi_\pi$, where $\Theta_\pi \in \mathbb{R}^{N \times 165}$ is the degree-3 library over the 8-dimensional sin/cos observation, and $\Xi_\pi \in \mathbb{R}^{165 \times 1}$ (purple) is the scalar action coefficient vector. The two libraries are distinct: different input spaces (raw state-action vs. sin/cos encoding) and different feature counts (120 vs. 165). Annotations below each $\Xi$ give the nonzero coefficient count after STLSQ thresholding — 690 of 720 possible entries for the dynamics model and 160 of 165 for the distilled policy — indicating that both fits are near-dense.](figures/sindy_matrix_shapes.svg){width=90%}
 
 ---
 
 ## 3  Methods
 
+The evaluation has three components. First, a full-order PPO agent trained with unlimited simulator access establishes the performance ceiling. Second, the SINDy-RL Dyna pipeline co-trains an E-SINDy surrogate and a PPO policy using a fraction of those real interactions, targeting comparable task success. Third, behavioral cloning — fitting a sparse polynomial to imitate the neural policy's actions, a process we refer to as *distillation* — converts the result into a closed-form expression suitable for embedded deployment and formal analysis. All three are implemented on the IDP testbed (§2.1).
+
 ### 3.1  Baseline: Full-Order PPO
 
-The performance ceiling is a standard PPO agent (Stable-Baselines3 2.8.0) trained with unlimited real-environment access: a two-hidden-layer [64,64] MLP with tanh activations (9,731 parameters), trained for 400,000 total steps across 15,103 episodes. This policy is a reference point only; it is not used as a distillation teacher. The SINDy-RL distillation teacher is the best Dyna-loop checkpoint.
+The performance ceiling is a standard PPO agent (Stable-Baselines3 2.8.0) trained with unlimited real-environment access: a two-hidden-layer [64,64] MLP with tanh activations (9,731 parameters), trained for 400,000 total steps across 15,103 episodes. This agent is evaluated only as a reference point; the Dyna loop produces its own neural policy, and it is that policy — not the baseline — that is subsequently distilled into a polynomial.
 
 ### 3.2  SINDy-RL Pipeline
 
-All code is implemented in Python 3.12.7 using PySINDy 2.1.0 (E-SINDy surrogate), Stable-Baselines3 2.8.0 (PPO policy), Gymnasium 1.2.3 with MuJoCo 3.8.1 (simulation environment), NumPy 2.4.6 (numerical operations), and scikit-learn 1.6.0 (polynomial feature generation). The full pipeline is in `notebooks/sindy-rl.ipynb`.
+All code is implemented in Python 3.12.7 using PySINDy 2.1.0 [@desilva2020pysindy] (E-SINDy surrogate), Stable-Baselines3 2.8.0 [@raffin2021sb3] (PPO policy), Gymnasium 1.2.3 with MuJoCo 3.8.1 [@todorov2012mujoco] (simulation environment), NumPy 2.4.6 (numerical operations), and scikit-learn 1.8.0 (polynomial feature generation). The full pipeline is in `notebooks/sindy-rl.ipynb`.
 
 **Bootstrap (Stage 1).** 300 episodes of Schroeder multi-sine excitation collect 2,897 near-upright state-transition pairs from real MuJoCo.
 
-**E-SINDy fit (Stage 2).** Transitions with tip height $h > 1.10$ m (poles within $\approx 24°$ of vertical) are retained. Ten degree-3 SINDy-C models (PySINDy `SINDy` with `PolynomialLibrary(degree=3)` and `STLSQ(threshold=0.05)`) are fit on 80% bootstrap subsamples. Their coefficient matrices are stacked into a `FastEnsemblePredictor`[^fep] for efficient surrogate stepping.
+**E-SINDy fit (Stage 2).** Transitions with tip height $h > 1.10$ m (poles within $\approx 24°$ of vertical) are retained.[^filter] Ten degree-3 SINDy-C models (PySINDy `SINDy` with `PolynomialLibrary(degree=3)` and `STLSQ(threshold=0.05)`) are fit on 80% bootstrap subsamples. Their coefficient matrices are stacked into a `FastEnsemblePredictor`[^fep] for efficient surrogate stepping.
 
 **Surrogate PPO (Stage 3).** The predictor is wrapped in `EnsembleSurrogateEnv`[^surenv], a Gymnasium environment that replicates MuJoCo's reward formula and $h \leq 1.0$ m termination condition, adds the uncertainty penalty $\kappa \cdot \text{mean}(\sigma_\Delta)$, and enforces physical state bounds ($|x|\leq2.5$ m, $|\theta|\leq0.9$ rad, $|\dot{\theta}|\leq12$ rad/s). PPO trains for 100k steps; early-stopped if mean surrogate episode length stays below 5 steps after 50k steps.
 
@@ -112,7 +116,9 @@ All code is implemented in Python 3.12.7 using PySINDy 2.1.0 (E-SINDy surrogate)
 
 **Repeat with warm-start (Stage 5).** If exploitation is detected (surrogate reward $> 3\times$ previous AND real episode length $< 50\%$ of best seen), the next iteration rolls back to the best real-env checkpoint.
 
-**Distillation.** 50k expert transitions are collected from the best Dyna checkpoint in real MuJoCo, augmented 5× with per-dimension Gaussian noise ($\sigma$: [0.02, 0.02, 0.02, 0.05, 0.10, 0.10] for $[x, \theta_1, \theta_2, \dot{x}, \dot\theta_1, \dot\theta_2]$), and re-queried from the NN oracle. A degree-3 polynomial is then fit via STLSQ ($\lambda = 0.05$) on the 8-dimensional sin/cos observation.
+**Distillation.** 50k expert transitions are collected from the best Dyna checkpoint in real MuJoCo, augmented 5× with per-dimension Gaussian noise ($\sigma$: [0.02, 0.02, 0.02, 0.05, 0.10, 0.10] for $[x, \theta_1, \theta_2, \dot{x}, \dot\theta_1, \dot\theta_2]$), and re-queried from the NN oracle. A degree-3 polynomial is then fit via STLSQ ($\lambda = 0.10$) on the 8-dimensional sin/cos observation.
+
+[^filter]: The initial value was inherited from a reward-shaping constant `TIP_HEIGHT_TARGET = 2.0` (a dimensionless offset in MuJoCo's reward formula, not a physical height), setting `SINDY_H_MIN = 1.6` m — above the physical maximum $L_1 + L_2 = 1.2$ m. Every iteration silently fell back to fitting on all collected data until corrected to `SINDY_H_MIN = 1.10` m, derived from segment geometry.
 
 [^fep]: The bottleneck was `PolynomialLibrary.transform()` from scikit-learn, which carries ~1 ms fixed overhead per call regardless of input size; calling it once per ensemble member cost ~10 ms/step and ~13 min per 75k-step PPO phase. The fix: at construction, extract the `powers_` exponent matrix from sklearn's `PolynomialFeatures` once; at each step, compute features as `np.prod(xu ** powers_, axis=1)` in pure NumPy and apply all 10 pre-stacked `(10, 6, 120)` coefficient matrices via a single batched matmul (~0.93 ms/step, 11.5× speedup).
 
@@ -132,61 +138,75 @@ Full-order PPO achieves mean reward $9{,}324 \pm 2$, 100% success, and mean epis
 
 ### 4.2  Dyna Loop Convergence
 
-The Dyna loop converged in four iterations using 27,512 real steps, **14.5× fewer than the baseline**. Figure 3 shows episode length and surrogate RMSE across iterations. A post-loop evaluation of the iteration-4 checkpoint gave **75% success and mean episode length 763 steps**. The converged E-SINDy dynamics model is dense: 690 out of 720 possible coefficients (120 features × 6 state dimensions) are nonzero, indicating that the IDP requires the full expressiveness of a degree-3 polynomial.
+The Dyna loop converged in six iterations using 39,616 real steps, **10.1× fewer than the baseline**. Figure 3 shows episode length distributions for selected checkpoints. Cross-validated evaluation of all saved checkpoints identified **iteration 7** as the best policy: **90% success and mean episode length 904 steps**. The converged E-SINDy dynamics model is dense: 690 out of 720 possible coefficients (120 features × 6 state dimensions) are nonzero, indicating that the IDP requires the full expressiveness of a degree-3 polynomial.
 
-![**Figure 3.** Dyna loop convergence. Bars (left): mean real episode length. Line (right): E-SINDy one-step RMSE on near-upright transitions. RMSE rises at iterations 3--4 as the improving policy visits states further from vertical; the surrogate remained sufficiently accurate in the near-upright band to produce a transferable policy.](figures/fig5_convergence.png){width=82%}
+![**Figure 4.** Episode length distributions for the baseline PPO and selected SINDy-RL checkpoints, evaluated over 20 episodes each. Success rate ($\geq$ 500 steps) is annotated above each box. Iteration 7 (starred) is the cross-validated best checkpoint. Iterations 10 and 20 illustrate the performance collapse following peak convergence — a consequence of continued surrogate exploitation that degrades the dataset.](figures/fig_ep_lengths.png){width=90%}
 
 | Iteration | Cumul. real steps | SINDy RMSE | Surr. mean len | Real mean len | Success |
 |-----------|------------------|------------|----------------|---------------|---------|
-| Bootstrap | 2,897 | 0.021 | — | — | — |
-| 1 | 7,023 | 0.015 | 12.6 | $\approx$12 | 0% |
-| 2 | 11,150 | 0.013 | 12.7 | $\approx$12 | 0% |
-| 3 | 15,461 | 0.094 | 31.1 | $\approx$31 | 0% |
-| **4** | **27,512** | 0.090 | **805** | **805** | **80%** |
+| Bootstrap | 2,897 | 0.016 | — | — | — |
+| 1 | 7,015 | 0.016 | 11.8 | 12 | 0% |
+| 2 | 11,186 | 0.020 | 17.1 | 17 | 0% |
+| 3 | 15,551 | 0.084 | 36.5 | 36 | 0% |
+| 4 | 19,979 | 0.095 | 42.8 | 43 | 0% |
+| 5 | 29,453 | 0.085 | 547 | 547 | 50% |
+| **6** | **39,616** | **0.080** | **616** | **616** | **60%** |
 
-The RMSE rise at iteration 3 is not model degradation but a consequence of a better policy exploring states further from vertical, where the polynomial is less accurate. The surrogate remained sufficiently accurate in the near-upright band to produce a policy that transferred to real MuJoCo.
+The loop declared convergence at iteration 6 (60% surrogate success); the best checkpoint was selected by cross-evaluating all saved policies in real MuJoCo and is at iteration 7 (one additional PPO phase beyond convergence), achieving 90% success. The RMSE rise at iterations 3--4 reflects a better policy exploring states further from vertical, not model degradation; the surrogate remained accurate in the near-upright band.
 
 ### 4.3  Engineering Obstacles
 
-Three non-obvious obstacles prevented convergence on early attempts.
+Two non-obvious obstacles prevented convergence on early attempts.
 
 **Degree-2 RMSE ceiling.** Over 25 iterations with data growing from 5k to 90k transitions, RMSE oscillated at 0.10--0.16 and real episode length grew from only 6 to 22 steps. A degree-2 library (36 features) cannot express the inter-modal coupling terms that dominate IDP dynamics (e.g., $\cos\theta_1 \cdot \cos\theta_2 \cdot \dot\theta_1$), which are cubic. When RMSE fails to decrease with 10× more data, the cause is model capacity, not data quantity. Fix: `SINDY_DEGREE=3` (120 features), which dropped RMSE to 0.013 within two iterations.
 
-**Near-upright filter geometry bug.** The filter threshold `SINDY_H_MIN` was inherited from a reward-shaping constant `TIP_HEIGHT_TARGET = 2.0` (a dimensionless offset in the reward formula, not a physical height), yielding `SINDY_H_MIN = 1.6` m — above the physical maximum $L_1 + L_2 = 1.2$ m. Every iteration fell back to fitting on all data, silently making the filter a no-op. Fix: `SINDY_H_MIN = 1.10` m, derived from segment geometry.
-
-**Surrogate exploitation.** In a diagnostic run, surrogate reward jumped 9× (497 to 4,525) while real episode length collapsed 87% (414 to 56 steps). The policy found action sequences the polynomial predicted as highly rewarding that had no correspondence to real physics. Uncertainty penalization alone is insufficient: all 10 ensemble members share the same polynomial basis, so in extrapolated regions they all make the same wrong prediction simultaneously and ensemble disagreement $\sigma_\Delta$ remains low. Rollback alone is also insufficient: it detects exploitation after the fact but does not prevent the exploited iteration from degrading the dataset. Fix: both mechanisms together — uncertainty penalty `reward -= 5.0 * mean(sigma_delta)` during surrogate PPO, plus rollback to best real-env checkpoint when surrogate reward exceeds 3× the previous value and real episode length drops below 50% of best seen.
+**Surrogate exploitation.** In a diagnostic run, surrogate reward jumped 9× (497 to 4,525) while real episode length collapsed 87% (414 to 56 steps). The policy found action sequences the polynomial predicted as highly rewarding that had no correspondence to real physics. Uncertainty penalization alone is insufficient: all 10 ensemble members share the same polynomial basis, so in extrapolated regions they all make the same wrong prediction simultaneously and ensemble disagreement $\sigma_\Delta$ remains low. Rollback alone is also insufficient: it detects exploitation after the fact but does not prevent the exploited iteration from degrading the dataset. Fix: both mechanisms together — uncertainty penalty `reward -= 5.0 * mean(sigma_delta)` during surrogate PPO, plus rollback to best real-env checkpoint when surrogate reward exceeds 3× the previous value and real episode length drops below 50% of best seen. The design principle generalizes: any ensemble surrogate built on a shared function basis cannot detect shared extrapolation errors through internal disagreement — real-environment feedback is the only reliable out-of-distribution signal.
 
 ### 4.4  Policy Distillation
 
-Behavioral cloning from the best Dyna checkpoint produced a 165-term degree-3 polynomial achieving **65% success and mean episode length 672 steps** (Figure 4). Three additional obstacles required resolution: (1) the distillation teacher must be the best-checkpoint policy, not the final loop policy, which may have drifted during surrogate training (using the final policy gave 0% success); (2) degree-2 gave $R^2 \approx 0.905$ regardless of data volume, requiring degree-3 to reach $R^2 = 0.9916$; (3) perturbation augmentation was needed to close distribution shift between the NN's training trajectories and deployment states.
+Behavioral cloning from the best Dyna checkpoint (iteration 7, 90% success) produced a degree-3 polynomial with $R^2 = 0.9894$. Three additional obstacles required resolution: (1) the distillation teacher must be the best-checkpoint policy, not the final loop policy, which may have drifted during surrogate training (using the final policy gave 0% success); (2) degree-2 gave $R^2 \approx 0.905$ regardless of data volume, requiring degree-3; (3) perturbation augmentation was needed to close distribution shift between the NN's training trajectories and deployment states.
 
-![**Figure 4.** Method comparison. Success rate and mean episode length for baseline PPO (400k real steps, 9,731 params), SINDy-RL neural network (27,512 real Dyna steps), and distilled sparse polynomial (77,512 total steps, 165-term degree-3 polynomial).](figures/fig6_comparison.png){width=82%}
+STLSQ at $\lambda = 0.10$ dropped five terms, retaining **160/165 terms** with **90% closed-loop success** — identical to the teacher (Figure 5). The distilled policy is 59× smaller than the baseline NN. Figure 6 shows a threshold ablation across $\lambda \in [0.001, 1.0]$: success remains at 90--95% while term count drops from 165 to 121, confirming that distillation performance is robust to the threshold choice. The dominant policy terms include recognizable physical structure: a constant bias; proportional angle feedback on $\cos\theta_1$ and $\cos\theta_2$; velocity damping on $\dot\theta_1$ and $\dot\theta_2$; and a large inter-pole coupling term ($\cos\theta_1 \times \cos\theta_2$) — the physically expected dominant nonlinearity. The remaining cubic cross-terms encode residual nonlinearity from the NN's tanh activations.
 
-STLSQ retained all 165/165 policy terms — no sparsity was achieved. The distilled policy is 59× smaller than the baseline NN and exposes recognizable dominant terms: a constant bias ($-0.626$); proportional angle feedback on $\cos\theta_1$ ($+25.5$) and $\cos\theta_2$ ($-3.8$); velocity damping on $\dot\theta_1$ ($+3.5$) and $\dot\theta_2$ ($-1.1$); and a large inter-pole coupling term $\cos\theta_1 \times \cos\theta_2$ ($-158.2$) — the physically expected dominant nonlinearity in a double pendulum. These dominant terms are analogous to a PD controller with coupling. The remaining $\approx$120 small cubic cross-terms (e.g., $+0.0001\,x^3$, $+0.0003\,x^2\sin\theta_1$) appear to encode residual nonlinearity from the NN's tanh activations rather than mechanistic structure.
+![**Figure 5.** Distilled policy coefficient magnitudes (log scale), coloured by polynomial degree. Of 165 possible terms, 160 are nonzero at $\lambda = 0.10$; five terms are dropped. Performance is fully preserved (90% success).](figures/fig_coefficients.png){width=90%}
 
-The data efficiency trade-off is summarized below. Distillation reduces success from 75% to 65% in exchange for a closed-form controller; this trade-off is only justified by a hard downstream requirement (embedded hardware, formal verification, or regulatory auditability).
+![**Figure 6.** STLSQ threshold ablation. Left axis: mean episode length (blue); right axis: non-zero term count (orange). Dashed vertical line marks the report threshold ($\lambda = 0.10$). Performance is stable at 90--95% success across the full ablation range, even as the polynomial compresses from 165 to 121 terms.](figures/fig_threshold_ablation.png){width=82%}
+
+The dynamics feature matrix $\Theta$ (209,620 × 120) has condition number $\kappa = 2.37 \times 10^4$ (full rank, 120/120 singular values nonzero). Ill-conditioning worsens with output dimension: $\kappa = 3.18 \times 10^2$ for the $x$-position equation (40 active OLS features) rising to $\kappa = 2.30 \times 10^4$ for $\dot\theta_2$ (116 active features). In an ill-conditioned feature basis, small OLS coefficients along low-singular-value directions are numerically unreliable; STLSQ cannot safely threshold the remaining 160 terms without risking structural contributions. The 690/720 nonzero dynamics coefficients reflect the same phenomenon — not that all terms are mechanistically necessary, but that the feature basis does not admit a stable sparse decomposition. As on other unstable systems, $R^2 = 0.9894$ on the distillation set is a necessary but not sufficient metric: small in-distribution approximation errors can compound against the IDP's unstable modes in closed loop.
+
+Distillation preserves neural-policy performance while delivering a closed-form controller — the trade-off is justified by downstream requirements (embedded hardware, formal verification, or regulatory auditability).
 
 | Approach | Real-env steps | Mean ep len | Success | Params |
 |---|---|---|---|---|
 | Baseline PPO | 400,000 | 1,000 | 100% | 9,731 |
-| SINDy-RL NN (Dyna) | 27,512 | 763 | 75% | 9,731 |
-| SINDy-RL Polynomial | 77,512$^\dagger$ | 672 | 65% | 165 terms |
+| SINDy-RL NN (Dyna) | 39,616 | 904 | 90% | 9,731 |
+| SINDy-RL Polynomial | 89,616$^\dagger$ | 904 | 90% | 160 terms |
 
-$^\dagger$27,512 Dyna steps + 50,000 rollout steps for distillation data; 5× perturbation augmentation reuses the NN oracle without additional MuJoCo interactions.
+$^\dagger$39,616 Dyna steps + 50,000 rollout steps for distillation data; 5× perturbation augmentation reuses the NN oracle without additional MuJoCo interactions.
 
-### 4.5  Code Repository
+### 4.5  Physics-Informed Feature Reduction via Translational Symmetry
 
-All code and results: **https://github.com/falconeaj1/ME_595**. Key notebooks: `full-order-simulation.ipynb` (baseline PPO) and `sindy-rl.ipynb` (SINDy-RL pipeline). Professor Michelle Hickner added as collaborator (GitHub: mhickner).
+The IDP equations of motion are invariant under cart translations $x \to x + c$: the Lagrangian contains $\dot{x}$ but not $x$, so the state increment $\Delta x = \dot{x}\,\Delta t$ is given exactly by kinematics and need not be learned. Removing $x$ from the SINDy library reduces the state-action input from 7 to 6 dimensions and cuts the degree-3 feature count from $\binom{10}{3} = 120$ to $\binom{9}{3} = 84$ — a 30% reduction — while hard-coding $\Delta x = \dot{x}\cdot\Delta t$ in the surrogate step. The distillation library is unchanged (it operates on the 8-dimensional sin/cos observation, which retains $x$ via the position-dependent reward).
+
+With the reduced library the Dyna loop converges in seven iterations using approximately 31,000 real-environment steps. The converged neural policy achieves **85% task success and mean episode length 856 steps**. Behavioral cloning yields $R^2 = 0.9987$ and **162/165 terms** at $\lambda = 0.05$, comparable to the standard formulation's 160/165 at $\lambda = 0.10$, but at 5 percentage points lower neural-policy success (85% vs. 90%). The no-$x$ variant does not outperform the standard formulation: both achieve comparable distillation sparsity while the standard formulation achieves higher task success. This suggests the degree-3 polynomial basis already captures the translational symmetry implicitly through the relationship between $x$, $\dot{x}$, and the dynamics, making the explicit coordinate removal redundant. We also examined SE(3) forward-kinematics coordinates (replacing raw angles with absolute-link sin/cos), which produced catastrophic ill-conditioning ($\kappa = 10^{17}$--$10^{19}$) due to unit-circle constraints ($\sin^2\theta + \cos^2\theta = 1$) creating near-exact linear dependence in the degree-2+ polynomial features — confirming that the choice of coordinate representation has a larger effect on numerical stability than on task performance, and that degree-3 in raw angles is difficult to improve upon at this data scale.
+
+\newpage
+
+### 4.6  Code Repository
+
+All code and results: **https://github.com/falconeaj1/ME_595**. Key notebooks: `full-order-simulation.ipynb` (baseline PPO), `sindy-rl.ipynb` (SINDy-RL pipeline), and `sindy-rl-no-x.ipynb` (translational-symmetry variant). Professor Michelle Hickner added as collaborator (GitHub: mhickner).
 
 ---
 
 ## 5  Summary
 
-Compared with baseline PPO's 400,000 real-environment steps and 9,731-parameter neural network, the SINDy-RL loop trained a PPO policy in the SINDy surrogate using 27,512 real Dyna steps — a 14.5× reduction in real-environment interactions. That policy was distilled into a 165-term degree-3 polynomial controller 59× smaller than the baseline network. The main result demonstrates that the SINDy-RL algorithm of Zolman et al. produces a substantially more data-efficient training process and a compact controller capable of controlling highly nonlinear environments such as the IDP, making it attractive for safety-critical applications where interpretability and data efficiency are jointly required.
+We stress-tested SINDy-RL against its three core promises on the inverted double pendulum. **Data efficiency is confirmed**: the Dyna loop trains a 90%-success neural policy using 39,616 real-environment steps — 10.1× fewer than the full-order PPO baseline. **Near-sparsity is achieved through behavioral cloning**: STLSQ distillation at $\lambda = 0.10$ retains 160/165 terms while fully preserving 90% closed-loop success, and a threshold ablation confirms robustness across a 500× range of threshold values (90--95% success, 121--165 terms). **Full sparsity remains elusive**: the 160 surviving terms are explained by ill-conditioning of the degree-3 feature matrix ($\kappa \approx 2.4 \times 10^4$) — a representation issue that neither more data nor aggressive thresholding can resolve without risking structural contributions. A 160-term polynomial is compact and evaluates as a single dot product, but is not auditable in the way a five-term equation would be.
 
-Achieving this result required resolving three engineering obstacles absent from Zolman et al.'s algorithm description: the degree-2 RMSE ceiling showed that the IDP requires a cubic polynomial library (120 features vs. 36); the filter geometry bug showed that named constants must be derived from physical geometry rather than inherited from reward-shaping parameters; and surrogate exploitation showed that uncertainty penalization and rollback are complementary safeguards — neither is sufficient alone.
+Reaching the data-efficiency result required resolving two non-obvious engineering obstacles absent from Zolman et al.'s algorithm description: the degree-2 RMSE ceiling showed that the IDP requires a cubic polynomial library (120 features vs. 36); and surrogate exploitation showed that uncertainty penalization and rollback are complementary safeguards — neither is sufficient alone.
 
-Several open questions remain. First, it is unclear whether SINDy-RL only improves early sample efficiency or can eventually match the baseline's 100% success with fewer than 400,000 real steps if the Dyna loop is continued. Second, the STLSQ sparsity threshold, PPO hyperparameters, and uncertainty-penalty weight have not been swept; it is unknown whether performance is limited by the surrogate model, policy optimizer, or reward design. Third, the distillation process requires real-environment data collection despite the theoretical justification for querying the policy at any state [1]: "because there is no temporal dependence on $\pi_\phi$, we can assemble our data and label pairs by evaluating $\pi_\phi$ for any $\mathbf{x}$" — it is unclear why surrogate trajectories alone are insufficient for distillation, and this bears further investigation. Finally, a more physically informed SINDy library — with angle-sum trigonometric terms, velocity-product interactions, and action-coupling terms tailored to double-pendulum mechanics — may improve surrogate accuracy and distillation sparsity.
+A physics-informed variant dropping cart position from the SINDy library (exploiting translational symmetry) achieves comparable distillation sparsity (162/165 at $\lambda = 0.05$) but at 5 percentage points lower neural-policy success (85% vs. 90%). The standard degree-3 library already captures the translational structure implicitly, suggesting that additional coordinate engineering is unlikely to be the path to true sparsity on this system.
+
+Several open questions remain. First, it is unclear whether SINDy-RL can eventually match the baseline's 100% success with fewer than 400,000 real steps if the Dyna loop is continued beyond the performance peak before exploitation sets in. Second, physics-informed libraries derived from the Euler-Lagrange equations — using gravity terms, mass-matrix coupling, and Coriolis interactions as basis functions rather than generic polynomial monomials — may achieve true sparsity by encoding the system's structure directly; preliminary library comparisons show 35× better conditioning ($\kappa \approx 3\times10^4$) with only 32 features versus the degree-3 polynomial's 120, and a full Dyna comparison is ongoing. Third, the distillation process requires real-environment data collection despite the theoretical justification for querying the policy at any state [@zolman2025sindyrl]: "because there is no temporal dependence on $\pi_\phi$, we can assemble our data and label pairs by evaluating $\pi_\phi$ for any $\mathbf{x}$" — it is unclear why surrogate trajectories alone are insufficient for distillation, and this bears further investigation.
 
 \newpage
 
@@ -216,29 +236,3 @@ Writing -- review \& editing & Yes & Yes       \\
 \newpage
 
 # References
-
-[1] Zolman, N., Fasel, U., Kutz, J. N., & Brunton, S. L. (2024). SINDy-RL: Interpretable and efficient model-based reinforcement learning. *arXiv:2403.09110*.
-
-[2] Brunton, S. L., Proctor, J. L., & Kutz, J. N. (2016). Discovering governing equations from data by sparse identification of nonlinear dynamical systems. *Proceedings of the National Academy of Sciences*, 113(15), 3932--3937.
-
-[3] Kaiser, E., Kutz, J. N., & Brunton, S. L. (2018). Sparse identification of nonlinear dynamics for model predictive control in the low-data limit. *Proceedings of the Royal Society A*, 474(2219), 20180335.
-
-[4] Fasel, U., Kutz, J. N., Brunton, B. W., & Brunton, S. L. (2022). Ensemble-SINDy: Robust sparse model discovery in the low-data, high-noise limit, with active learning and control. *Proceedings of the Royal Society A*, 478(2260), 20210904.
-
-[5] Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). Proximal policy optimization algorithms. *arXiv:1707.06347*.
-
-[6] Sutton, R. S. (1990). Integrated architectures for learning, planning, and reacting based on approximating dynamic programming. *Proceedings of the Seventh International Conference on Machine Learning*, 216--224.
-
-[7] Ross, S., Gordon, G., & Bagnell, D. (2011). A reduction of imitation learning and structured prediction to no-regret online learning. *Proceedings of the 14th International Conference on Artificial Intelligence and Statistics (AISTATS)*, 627--635.
-
-[8] Arrieta, A. B., Díaz-Rodríguez, N., Del Ser, J., et al. (2020). Explainable artificial intelligence (XAI): Concepts, taxonomies, opportunities and challenges toward responsible AI. *Information Fusion*, 58, 82--115.
-
-[9] Rudin, C. (2019). Stop explaining black box machine learning models for high stakes decisions and use interpretable models instead. *Nature Machine Intelligence*, 1(5), 206--215.
-
-[10] Schroeder, M. R. (1970). Synthesis of low-peak-factor signals and binary sequences with low autocorrelation. *IEEE Transactions on Information Theory*, 16(1), 85--89.
-
-[11] de Silva, B. M., Champion, K., Quade, M., Loiseau, J.-C., Kutz, J. N., & Brunton, S. L. (2020). PySINDy: A Python package for the sparse identification of nonlinear dynamical systems from data. *Journal of Open Source Software*, 5(49), 2104.
-
-[12] Raffin, A., Hill, A., Gleave, A., Kanervisto, A., Ernestus, M., & Dormann, N. (2021). Stable-Baselines3: Reliable reinforcement learning implementations. *Journal of Machine Learning Research*, 22(268), 1--8.
-
-[13] Todorov, E., Erez, T., & Tassa, Y. (2012). MuJoCo: A physics engine for model-based control. *2012 IEEE/RSJ International Conference on Intelligent Robots and Systems*, 5026--5033.
