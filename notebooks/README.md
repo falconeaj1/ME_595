@@ -49,9 +49,9 @@ Replaces the generic degree-3 polynomial library with 32 physics-derived atoms f
 
 ### 6. `analysis.ipynb`
 **Purpose:** Definitive cross-evaluation and figure generation. **This is the source of the headline numbers in the report.**  
-Loads all 30 PPO checkpoints from `sindy-rl.ipynb`, evaluates each in real MuJoCo (3 episodes quick scan), identifies the best checkpoint (iter 7, mean_len≈1000), distills it to a sparse polynomial, and runs the STLSQ threshold ablation. Generates all four report figures without re-training. Estimated runtime: 2–5 minutes.
+Loads all 30 PPO checkpoints from `sindy-rl.ipynb`, evaluates each in real MuJoCo (3 episodes quick scan), identifies the best checkpoint (iter 7, mean_len≈1000), distills it to a sparse polynomial, and runs the STLSQ threshold ablation. Also cross-evaluates the SAC and Lagrangian variant checkpoints for the algorithm and library comparison sections of the report. Generates all report figures without re-training. Estimated runtime: 10–20 minutes.
 
-**Key outputs:** Best checkpoint identified as iter 7 (90% success, 903 mean ep len); sparse polynomial 160/165 terms, R²=0.9908, 90% success; threshold ablation (λ=0.001–1.0 full results); condition number κ=2.37×10⁴; `fig_ep_lengths.png`, `fig_coefficients.png`, `fig_threshold_ablation.png`.
+**Key outputs:** Best PPO iter 7 (90% success, 904 mean ep len); sparse polynomial 160/165 terms, R²=0.9908; threshold ablation (λ=0.001–50.0); condition number κ=2.37×10⁴; library comparison (degree-3 vs Lagrangian κ, RMSE, RL performance); `fig_ep_lengths.png`, `fig_condition_number.png`, `fig_coefficients.png`, `fig_threshold_ablation.png`, `fig_algo_comparison.png`, `fig_library_comparison.png`.
 
 ---
 
@@ -59,15 +59,6 @@ Loads all 30 PPO checkpoints from `sindy-rl.ipynb`, evaluates each in real MuJoC
 
 ### `sindy-rl-no-x.ipynb`
 Translational symmetry variant: drops cart position `x` from the SINDy library (since ΔX = ẋ·Δt exactly by kinematics, reducing library from 120 to 84 degree-3 features). Converged in 7 iterations, 43,259 real steps. Best NN: 85% success, 856 mean ep len. Sparse polynomial: 162/165 terms, mean_len=1,000 (100% complete).
-
-### `physics-informed-library.ipynb`
-Compares four SINDy dynamics library designs and four policy distillation libraries. Key result: SE(3) forward-kinematics coordinates (sin/cos of absolute link angles) produce catastrophic ill-conditioning (κ=10¹⁷–10¹⁹) due to unit-circle constraints creating near-exact linear dependence in polynomial features. Lagrangian library achieves κ=3.4×10⁴ with 32 features but lower RMSE accuracy than degree-3.
-
-### `se3-forward-kinematics.ipynb`
-Derives and validates SE(3) forward kinematics for the IDP. Supports the collinearity analysis in `physics-informed-library.ipynb`.
-
-### `se3-rl-lqr-comparison.ipynb`
-Builds a custom Gymnasium environment with SE(3) plant dynamics and compares it against MuJoCo via LQR. Exploratory; findings absorbed into `physics-informed-library.ipynb`.
 
 ### `inverted_double_pendulum_intro.ipynb`
 See §1 above.
@@ -80,6 +71,9 @@ Early-stage experiments that informed design decisions but did not produce final
 
 | Notebook | What it explored |
 |---|---|
+| `physics-informed-library.ipynb` | Static comparison of four SINDy library designs (degree-3, SE(3)+deg-2, SE(3)+deg-3, Lagrangian); conditioning/RMSE analysis absorbed into `analysis.ipynb §7` |
+| `se3-forward-kinematics.ipynb` | SE(3) forward kinematics derivation and validation for IDP; supports the SE(3) library experiments |
+| `se3-rl-lqr-comparison.ipynb` | Custom SE(3) Gymnasium environment vs MuJoCo LQR comparison; tangential to the SINDy-RL narrative |
 | `sindy-hypersearch.ipynb` | STLSQ threshold and polynomial degree sweep for policy distillation |
 | `sparse-policy.ipynb` | Behavioral cloning from the full-order PPO baseline (Track B) |
 | `sparse-policy-poly.ipynb` | Polynomial policy variants |
@@ -107,6 +101,8 @@ Early-stage experiments that informed design decisions but did not produce final
 ../results/
   sindy_rl/
     ppo_models/      # ppo_iter1.zip … ppo_iter30.zip  (sindy-rl.ipynb)
+    sac_models/      # sac_iter1.zip … sac_iter5.zip   (sindy-rl-sac.ipynb)
   sindy_rl_lagrangian/
-    ppo_models/      # Lagrangian Dyna checkpoints
+    ppo_models/      # ppo_lag_iter*.zip                (sindy-rl-lagrangian.ipynb)
+    best_ppo_lagrangian.zip  # best Lagrangian checkpoint by in-loop real_len
 ```
