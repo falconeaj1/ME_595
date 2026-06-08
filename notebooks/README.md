@@ -104,6 +104,10 @@ Loads all 30 PPO checkpoints from `sindy-rl.ipynb`, evaluates each in real MuJoC
 **Model-based, on-policy. Feature ablation within the PPO / degree-3 cell.**  
 Drops cart position `x` from the SINDy library (translational symmetry: ΔX = ẋ·Δt exactly by kinematics), reducing library from 120 to 84 degree-3 features. Converged in 35,111 real steps (11.4×). Saves best checkpoint to `results/sindy_rl/best_ppo_nox.zip`. Two distilled policies: §6 state6 basis (84/84 terms, R²=0.89) and §6b state5 basis — drops `x` from policy features too (55/56 terms, R²=0.87, 80% success). The near-dense STLSQ result confirms that dropping `x` improves sample efficiency but does not yield a more interpretable policy.
 
+### `sindy_rl_strict_ppo_dyna.ipynb`
+**Model-based, on-policy. Stress test of the PPO / degree-3 cell under a strict 100%-success convergence criterion.**  
+Repeats the `sindy-rl.ipynb` Dyna loop with stricter settings: convergence requires all 20 eval episodes to survive ≥999 steps (vs. the relaxed 80% criterion used in the main run), 6,000 real transitions per iteration (vs. 4,000), 150k surrogate PPO steps per iteration, and targeted hard-case correction (failed episodes re-run and added to the SINDy fit). Saves per-iteration checkpoints to `results/pure_sindy_rl_strict/ppo_models/`. Additional engineering: uncertainty termination (ensemble std above the 99.5th-percentile threshold terminates the surrogate episode), targeted failure replay, and best-checkpoint rollback on performance regression. The strict criterion was never achieved: the best checkpoint (iteration 12) reached **80% success and 805 mean episode length at 108,251 cumulative real steps**; 20 iterations consumed **270,142 real steps** without exceeding that peak. An optional real-environment PPO fine-tune (50k steps from the best surrogate checkpoint) evaluated at **77% success, 770.7 mean episode length** on 30 seeds — only marginally better than the surrogate-only result. This is the backing data for the "Strict full-horizon stress test" paragraph in §4.2 of the report: it demonstrates that further tuning PPO + polynomial does not close the gap to the full-order baseline, motivating the algorithm and library swaps in subsequent sections.
+
 ### `inverted_double_pendulum_intro.ipynb`
 See §1 above.
 
@@ -153,4 +157,6 @@ Early-stage experiments that informed design decisions but did not produce final
     sac_models/      # sac_lag_iter*.zip                (sindy-rl-sac-lagrangian.ipynb)
     best_ppo_lagrangian.zip  # best PPO Lagrangian checkpoint by in-loop real_len
     best_policy_lagrangian.zip  # best SAC Lagrangian checkpoint by in-loop real_len
+  pure_sindy_rl_strict/
+    ppo_models/      # ppo_iter*.zip  (sindy_rl_strict_ppo_dyna.ipynb; best = iter 12)
 ```
