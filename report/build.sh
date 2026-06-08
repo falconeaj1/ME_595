@@ -14,11 +14,14 @@ require_cmd() {
 if [[ "${1:-}" == "--alt" ]]; then
   INPUT=report-alt.md
   OUTPUT=report-alt.pdf
+elif [[ "${1:-}" == "--final" ]]; then
+  INPUT=final-report.md
+  OUTPUT=final-report.pdf
 elif [[ $# -eq 0 ]]; then
   INPUT=report.md
   OUTPUT=report.pdf
 else
-  echo "Usage: bash build.sh [--alt]" >&2
+  echo "Usage: bash build.sh [--alt|--final]" >&2
   exit 1
 fi
 

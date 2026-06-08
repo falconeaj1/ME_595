@@ -25,13 +25,15 @@
 \setlength{\belowcaptionskip}{0pt}
 \usepackage{graphicx}
 \setkeys{Gin}{width=0.85\linewidth,keepaspectratio}
-% Unicode math/relation symbols
+% Unicode math/relation symbols — deferred to after preamble so XeLaTeX
+% does not encounter the bare characters before the active-char mappings fire.
 \usepackage{newunicodechar}
-\newunicodechar{≥}{\ensuremath{\geq}}
-\newunicodechar{≤}{\ensuremath{\leq}}
-\newunicodechar{≈}{\ensuremath{\approx}}
-\newunicodechar{≡}{\ensuremath{\equiv}}
-\newunicodechar{→}{\ensuremath{\rightarrow}}
-\newunicodechar{×}{\ensuremath{\times}}
-\newunicodechar{∼}{\ensuremath{\sim}}
-\newunicodechar{−}{\ensuremath{-}}
+\AtBeginDocument{%
+  \newunicodechar{≥}{\ensuremath{\geq}}%
+  \newunicodechar{≤}{\ensuremath{\leq}}%
+  \newunicodechar{≈}{\ensuremath{\approx}}%
+  \newunicodechar{≡}{\ensuremath{\equiv}}%
+  \newunicodechar{→}{\ensuremath{\rightarrow}}%
+  \newunicodechar{×}{\ensuremath{\times}}%
+  \newunicodechar{−}{\ensuremath{-}}%
+}
