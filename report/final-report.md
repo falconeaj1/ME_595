@@ -24,7 +24,7 @@ A ten-thousand-parameter neural network fails all of these requirements regardle
 
 Sparse Identification of Nonlinear Dynamics (SINDy [@brunton2016sindy]) identifies governing equations from data: fit a library of candidate functions against the observed dynamics, then zero all but a few terms via sparse regression. The result is compact and physically grounded. The difficulty is that for an unstable equilibrium — such as an inverted pendulum — the near-upright transitions that SINDy needs are entirely unvisited without a controller that does not yet exist.
 
-Zolman et al. [@zolman2025sindyrl] resolve this with SINDy-RL: use an ensemble SINDy model as the surrogate in a Dyna architecture [@sutton1990dyna], co-training a neural policy inside the surrogate while collecting data from the real environment. Each iteration improves both the model and the policy, bootstrapping the unstable system into the near-upright regime. Importantly, Algorithm 1 in [@zolman2025sindyrl] treats the feature library Θ and the RL optimizer A as explicit practitioner inputs, parameterizing the design space rather than fixing it.
+Zolman et al. [@zolman2025sindyrl] resolve this with SINDy-RL: use an ensemble SINDy model as the surrogate in a Dyna architecture [@sutton1990dyna], co-training a neural Reinforcement Learning (RL) policy inside the surrogate while collecting data from the real environment. Each iteration improves both the model and the policy, bootstrapping the unstable system into the near-upright regime. Importantly, Algorithm 1 in [@zolman2025sindyrl] treats the feature library Θ and the RL optimizer A as explicit practitioner inputs, parameterizing the design space rather than fixing it.
 
 ### 1.3  Contributions
 
@@ -32,8 +32,8 @@ We stress-test SINDy-RL on the inverted double pendulum — two links, two unsta
 
 1. **SINDy-RL passes the stress test.** The SAC+Lagrangian combination achieves all three goals simultaneously: 22,723 real steps (17.6×), a 29-term distilled controller (336× smaller than the baseline neural network), and 100% task success with interpretability by construction.
 2. **Data economy is confirmed across all variants.** Every combination substantially outperforms the full-order baseline, from 6.0× (PPO+polynomial) to 17.6× (SAC+Lagrangian).
-3. **Interpretability requires a physics-informed library.** The degree-3 polynomial basis is ill-conditioned ($\kappa \approx 2.4 \times 10^4$); STLSQ retains 82 of 84 terms at every threshold. This is a property of the polynomial representation on this system, not a failure of SINDy-RL.
-4. **Two non-obvious engineering obstacles** — a degree-2 RMSE ceiling and surrogate exploitation via a shared polynomial basis — are diagnosed and resolved with safeguards applicable to other unstable benchmarks.
+3. **Interpretability requires a physics-informed library.** The degree-3 polynomial basis is ill-conditioned ($\kappa \approx 2.4 \times 10^4$); Sequentially Thresholded Least Squares (STLSQ) retains 82 of 84 terms at every threshold. This is a property of the polynomial representation on this system, not a failure of SINDy-RL.
+4. **Two non-obvious engineering obstacles** — a degree-2 root-mean-square-error (RMSE) ceiling and surrogate exploitation via a shared polynomial basis — are diagnosed and resolved with safeguards applicable to other unstable benchmarks.
 
 ### 1.4  Ethics and Safety Considerations
 
@@ -68,7 +68,7 @@ The alive bonus ($\approx 10$/step) dominates when the system stays upright. Epi
 
 SINDy [@brunton2016sindy] fits discrete-time dynamics by regressing state increments against a library of candidate functions:
 $$\mathbf{x}_{k+1} - \mathbf{x}_k = \Theta(\mathbf{x}_k, u_k) \cdot \Xi$$
-where $\Theta(\mathbf{x}_k, u_k) \in \mathbb{R}^{1 \times p}$ is a row of library features evaluated at the current state-action pair and $\Xi \in \mathbb{R}^{p \times n}$ is the sparse coefficient matrix. For control-affine systems (SINDy-C [@kaiser2018sindympc]), the input $u_k$ enters the library directly.[^ca] The Sequentially Thresholded Least Squares (STLSQ) solver zeros all coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ polynomial library over an $n$-variable input has $\binom{n+d}{d}$ features: for the IDP's 7-dimensional state-action vector, degree-2 gives 36 features and degree-3 gives 120.
+where $\Theta(\mathbf{x}_k, u_k) \in \mathbb{R}^{1 \times p}$ is a row of library features evaluated at the current state-action pair and $\Xi \in \mathbb{R}^{p \times n}$ is the sparse coefficient matrix. For control-affine systems (SINDy-C [@kaiser2018sindympc]), the input $u_k$ enters the library directly.[^ca] The STLSQ solver zeros all coefficients below threshold $\lambda$, promoting sparsity in $\Xi$. A degree-$d$ polynomial library over an $n$-variable input has $\binom{n+d}{d}$ features: for the IDP's 7-dimensional state-action vector, degree-2 gives 36 features and degree-3 gives 120.
 
 [^ca]: A system is control-affine if $\dot{\mathbf{x}} = f(\mathbf{x}) + g(\mathbf{x})\,u$ where $f$ and $g$ may be nonlinear in state. Forces and torques satisfy this, including the IDP.
 
@@ -78,7 +78,7 @@ A single SINDy model provides a point estimate with no uncertainty. Fasel et al.
 
 ### 2.4  Dyna-Style Learning Loop and Behavioral Cloning
 
-The Dyna architecture [@sutton1990dyna] alternates cheap model-based rollouts inside a learned surrogate with real-environment data collection, so each iteration improves both the surrogate and the policy without expensive real interactions. In SINDy-RL [@zolman2025sindyrl], the surrogate is the E-SINDy ensemble and the planner is a neural policy trained by RL (PPO [@schulman2017ppo] or SAC). Figure 2 shows the RL control loop: during Dyna training, the environment is the E-SINDy surrogate; for data collection and evaluation, it is real MuJoCo.
+The Dyna architecture [@sutton1990dyna] alternates cheap model-based rollouts inside a learned surrogate with real-environment data collection, so each iteration improves both the surrogate and the policy without expensive real interactions. In SINDy-RL [@zolman2025sindyrl], the surrogate is the E-SINDy ensemble and the planner is a neural policy trained by RL (Proximal Policy Optimization, PPO [@schulman2017ppo], or SAC). Figure 2 shows the RL control loop: during Dyna training, the environment is the E-SINDy surrogate; for data collection and evaluation, it is real MuJoCo.
 
 ![**Figure 2.** RL control loop. During Dyna training the environment is the E-SINDy polynomial surrogate; for data collection and evaluation it is the full MuJoCo simulator. The policy $\pi_\phi$ maps observation $\mathbf{x}_k$ to action $u_k = \pi_\phi(\mathbf{x}_k)$.](figures/rl_loop.svg){width=80%}
 
@@ -96,7 +96,7 @@ This section describes the experimental setup. The evaluation proceeds in three 
 
 ### 3.1  Baseline
 
-A standard PPO agent (Stable-Baselines3 2.8.0 [@raffin2021sb3]) with unlimited real-environment access serves as the performance ceiling: a two-hidden-layer [64,64] MLP with tanh activations (9,731 parameters), trained for 400,000 steps (15,103 episodes). This agent is not used as the distillation teacher; the Dyna loop produces its own neural policy.
+A standard PPO agent (Stable-Baselines3 2.8.0 [@raffin2021sb3]) with unlimited real-environment access serves as the performance ceiling: a two-hidden-layer [64,64] multi-layer perceptron (MLP) with tanh activations (9,731 parameters), trained for 400,000 steps (15,103 episodes). This agent is not used as the distillation teacher; the Dyna loop produces its own neural policy.
 
 ### 3.2  SINDy-RL Pipeline
 
@@ -124,7 +124,7 @@ Beyond the default PPO+polynomial configuration, we evaluate three modifications
 
 ### 3.4  Metrics
 
-Data efficiency: real-environment step count. Task performance: success rate ($\geq$ 500 steps) and mean episode length. Surrogate quality: E-SINDy one-step RMSE on held-out near-upright transitions. Distillation quality: OLS $R^2$ and STLSQ term count.
+Data efficiency: real-environment step count. Task performance: success rate ($\geq$ 500 steps) and mean episode length. Surrogate quality: E-SINDy one-step RMSE on held-out near-upright transitions. Distillation quality: ordinary least squares (OLS) $R^2$ and STLSQ term count.
 
 ---
 
