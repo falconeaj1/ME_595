@@ -120,7 +120,19 @@ All code is implemented in Python 3.12.7 using PySINDy 2.1.0 [@desilva2020pysind
 
 ### 3.3  Variants
 
-Beyond the default PPO+polynomial configuration, we evaluate three modifications. The **no-$x$ variant** removes cart position $x$ from the SINDy library, exploiting the IDP's translational symmetry ($\Delta x = \dot{x}\,\Delta t$ exactly by kinematics). The **SAC swap** replaces PPO with Soft Actor-Critic, whose off-policy replay buffer accumulates broader state-space coverage across iterations. The **Lagrangian library** replaces the 120-feature polynomial library with 32 atoms derived from the IDP Euler-Lagrange equations: kinetic energy terms, gravitational restoring forces, Coriolis coupling, and cart–pole control coupling, each physically meaningful by construction. Because all atoms are genuinely present in the IDP dynamics, ridge regression (no thresholding) is used for the Lagrangian dynamics fit; STLSQ is applied only during policy distillation.
+Beyond the default PPO+polynomial configuration, we evaluate three modifications. The **no-$x$ variant** removes cart position $x$ from the SINDy library, exploiting the IDP's translational symmetry ($\Delta x = \dot{x}\,\Delta t$ exactly by kinematics). The **SAC swap** replaces PPO with Soft Actor-Critic [@haarnoja2018sac], whose off-policy replay buffer accumulates broader state-space coverage across iterations; Algorithm 1 of [@zolman2025sindyrl] treats the policy optimizer $\mathcal{A}$ as a practitioner input, making this a direct exercise of that degree of freedom.
+
+\needspace{18\baselineskip}
+The **Lagrangian library** replaces the 120-feature polynomial library with 32 atoms derived from the IDP Euler-Lagrange equations, following the principle that SINDy's library is only limited by domain knowledge [@brunton2016sindy; @brunton2022datadriven] and that incorporating known physical structure improves identification accuracy and interpretability [@loiseau2018constrained]:
+
+- **kinematics + gravity + control** (8): $\dot{x},\,\dot{\theta}_1,\,\dot{\theta}_2,\,\sin\theta_1,\,\cos\theta_1,\,\sin(\theta_1{+}\theta_2),\,\cos(\theta_1{+}\theta_2),\,u$
+- **centrifugal/Coriolis velocity products** (6): $\dot{x}^2,\,\dot{\theta}_1^2,\,\dot{\theta}_2^2,\,\dot{\theta}_1\dot{\theta}_2,\,\dot{x}\dot{\theta}_1,\,\dot{x}\dot{\theta}_2$
+- **mass-matrix angle–velocity** (9): $\sin\theta_1\cdot\dot{\theta}_1$, $\cos\theta_1\cdot\dot{\theta}_1$, $\sin(\theta_1{+}\theta_2)\cdot\dot{\theta}_1$, $\cos(\theta_1{+}\theta_2)\cdot\dot{\theta}_1$, $\sin(\theta_1{+}\theta_2)\cdot\dot{\theta}_2$, $\cos(\theta_1{+}\theta_2)\cdot\dot{\theta}_2$, $\sin\theta_1\cdot\dot{x}$, $\sin(\theta_1{+}\theta_2)\cdot\dot{x}$, $\cos(\theta_1{+}\theta_2)\cdot\dot{x}$
+- **relative angle** (2): $\sin\theta_2,\,\cos\theta_2$
+- **cubic Coriolis** (5): $\sin\theta_2\cdot\dot{\theta}_1^2$, $\sin\theta_2\cdot\dot{\theta}_2^2$, $\sin\theta_2\cdot\dot{\theta}_1\dot{\theta}_2$, $\cos\theta_2\cdot\dot{\theta}_1^2$, $\cos\theta_2\cdot\dot{\theta}_2^2$
+- **control coupling** (2): $\cos\theta_1\cdot u$, $\cos(\theta_1{+}\theta_2)\cdot u$
+
+Because all atoms are genuinely present in the IDP dynamics, ridge regression (no thresholding) is used for the Lagrangian dynamics fit; STLSQ is applied only during policy distillation.
 
 ### 3.4  Metrics
 
@@ -199,7 +211,7 @@ We stress-tested SINDy-RL on the inverted double pendulum and found that **the a
 
 **The practical implication** is that library selection dominates outcome on this system. On the IDP, the Lagrangian library resolved ill-conditioning at its source, reducing feature count, improving conditioning, and delivering interpretability without thresholding. For other unstable mechanical systems with a known Lagrangian, a physics-informed library derived from the equations of motion is a natural first choice of Θ in Algorithm 1, though whether it generalizes to systems with more complex dynamics or unknown Lagrangians remains an open question.
 
-Future work should characterize what happens as the system departs further from equilibrium (swing-up tasks), quantify whether the 29-term Lagrangian controller admits formal stability guarantees in the verified region, and explore autoencoder-based latent SINDy representations for systems where the governing equations are unknown.
+Future work should characterize what happens as the system departs further from equilibrium (swing-up tasks), quantify whether the 29-term Lagrangian controller admits formal stability guarantees in the verified region, and explore autoencoder-based latent SINDy representations for systems where the governing equations are unknown. A complementary open question is whether interpretability can be recovered from the polynomial basis without switching libraries: constrained sparse regression [@loiseau2018constrained] enforces known physical symmetries directly on the coefficient matrix, and trapping SINDy [@kaptanoglu2021stability] promotes global stability via a modified loss, both of which could in principle reduce the ill-conditioned density we observed and are worth evaluating as alternatives to the Lagrangian library on the IDP.
 
 \newpage
 
